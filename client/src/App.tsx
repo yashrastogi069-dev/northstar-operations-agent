@@ -8,13 +8,19 @@ import Controls from "./pages/Controls";
 import Evaluation from "./pages/Evaluation";
 import Guide from "./pages/Guide";
 import Home from "./pages/Home";
+import Approvals from "./pages/Approvals";
+import Memory from "./pages/Memory";
 import NotFound from "./pages/NotFound";
+import Runs from "./pages/Runs";
 import Sources from "./pages/Sources";
 import Workflows from "./pages/Workflows";
 
 function Router() {
   return <DashboardLayout><Switch>
     <Route path="/" component={Home} />
+    <Route path="/runs" component={Runs} />
+    <Route path="/approvals" component={Approvals} />
+    <Route path="/memory" component={Memory} />
     <Route path="/sources" component={Sources} />
     <Route path="/workflows" component={Workflows} />
     <Route path="/evaluation" component={Evaluation} />

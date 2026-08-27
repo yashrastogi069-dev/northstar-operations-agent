@@ -114,6 +114,8 @@
   .guide-decision-gate p { color:#b8d8c2; font-size:.58rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
   .guide-decision-gate h2 { margin-top:.25rem; font-family:var(--font-serif); font-size:1.25rem; line-height:1.25; }
   .guide-decision-gate .badge { background:#d8f0df; color:#1e5a37; font-size:.65rem; }
+  .northstar-hero { background:linear-gradient(118deg,#092329 0%,#103b41 58%,#205e5a 100%); border:1px solid #285c5a; }
+  .northstar-grid { background-image:linear-gradient(rgba(224,248,238,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(224,248,238,.13) 1px,transparent 1px); background-size:28px 28px; mask-image:linear-gradient(to right,rgba(0,0,0,.9),transparent 85%); }
 }
 @media (prefers-reduced-motion: no-preference) { .evidence-hero { animation:evidence-arrive .55s cubic-bezier(.23,1,.32,1) both; } @keyframes evidence-arrive { from { opacity:.82; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } } }
 @media (max-width: 767px) { .guide-hero { grid-template-columns:auto minmax(0,1fr); padding:1.25rem; } .guide-hero-ledger { grid-column:1 / -1; border-top:1px solid rgba(205,235,214,.3); border-left:0; padding:1rem 0 0; } .guide-pipeline { grid-template-columns:1fr; } .guide-stage { min-height:0; } .section-ledger-heading > p { text-align:left; } }
