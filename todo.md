@@ -27,3 +27,9 @@
 - [ ] Add trajectory, groundedness, citation, latency, token/cost, and refusal-quality evaluation measures using firm-approved test cases.
 - [ ] Add configured embeddings and activate the optional Qdrant route only after a firm-approved vector processing boundary is supplied.
 - [ ] Run authenticated desktop and mobile visual verification against Northstar’s dedicated deployment.
+- [ ] Provision Northstar as a distinct managed web project with an independent database and OAuth identity; leave Atlas unchanged.
+- [x] Review and apply the additive Northstar agent migrations 0002 through 0005 to the user-authorized shared test database; Atlas base migrations 0000 and 0001 were already present and were not rerun.
+- [ ] Verify deployed authentication, database-backed protected procedures, and public deployment boundaries.
+- [ ] Record deployment readiness, synchronize public-safe source, and provide the deployment access path.
+- [x] Perform controlled shared-environment testing using an isolated Northstar namespace while preserving every Atlas table and user-facing route.
+- [x] Verify the live shared test service rejects unauthenticated protected agent routes with HTTP 401 and retains the isolated Northstar agent-table namespace.
