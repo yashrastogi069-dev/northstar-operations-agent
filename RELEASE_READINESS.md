@@ -8,7 +8,7 @@
 
 Northstar is a focused operations agent rather than a chatbot or a generic multi-agent platform. A business request flows through an explicit LangGraph `StateGraph`: **policy → context → bounded planning → registered tools → evidence synthesis**, with a blocked branch that terminates before planning or tool use. LangChain structured tools provide typed interfaces, while deterministic authorization and input controls retain control over every capability the model may use.[1] [2]
 
-The current source is **production-oriented and deployment-ready in code**, but it is **not yet safe to label as a live firm deployment**. It needs its own managed database, OAuth identity, and deployment configuration; the reviewed migration sequence must be applied only to that new Northstar database. Connected systems and optional vector retrieval remain deliberately disabled until the firm approves the relevant providers, scopes, classifications, and credentials.
+The current source is **production-oriented and deployment-ready in code**, but it is **not yet safe to label as a live firm deployment**. A user-authorized shared-database test has confirmed that the additive Northstar `agent*` schema coexists with the completed Atlas tables and that a live protected procedure rejects unauthenticated requests. This is intentionally not a substitute for Northstar’s own managed database, OAuth identity, and deployment configuration. Connected systems and optional vector retrieval remain deliberately disabled until the firm approves the relevant providers, scopes, classifications, and credentials.
 
 | Release dimension | Current status | Evidence / limitation |
 |---|---|---|
@@ -64,6 +64,8 @@ The following checks were executed against the current source on **August 27, 20
 | Memory/feedback router tests | Passed | Non-admin firm-memory creation rejected; feedback requires run visibility; safety feedback creates high-severity audit record. |
 | Vector adapter tests | Passed | Disabled-by-default behavior, required source filter, server-side result filter, and result limit verified. |
 | Built-service smoke test | Passed, unauthenticated | A production build served the Northstar sign-in boundary with the intended agent branding. Authenticated end-to-end testing is pending a dedicated OAuth identity. |
+| Shared database schema test | Passed, controlled only | Additive migrations `0002`–`0005` created nine Northstar-prefixed tables alongside the existing Atlas tables; no agent records were inserted during verification. |
+| Live protected-route test | Passed | An unauthenticated request to the deployed `agent.capabilities` procedure returned HTTP 401. |
 
 The production bundle emitted a non-blocking Vite warning that the main JavaScript chunk exceeds 500 kB. The build completed successfully. Code-splitting secondary operator pages is a recommended performance improvement before broad rollout, not a release blocker for controlled pilot use.
 
