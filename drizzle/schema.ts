@@ -253,6 +253,22 @@ export const agentIntegrations = mysqlTable("agentIntegrations", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Quantitative evaluation result for the agent’s policy and routing behavior. */
+export const agentEvaluationResults = mysqlTable("agentEvaluationResults", {
+  id: int("id").autoincrement().primaryKey(),
+  scenarioName: varchar("scenarioName", { length: 180 }).notNull(),
+  request: text("request").notNull(),
+  expectedPolicy: mysqlEnum("expectedPolicy", ["allow", "review", "block"]).notNull(),
+  actualPolicy: mysqlEnum("actualPolicy", ["allow", "review", "block"]).notNull(),
+  expectedTools: json("expectedTools"),
+  actualTools: json("actualTools").notNull(),
+  policyPass: boolean("policyPass").notNull(),
+  toolPass: boolean("toolPass").notNull(),
+  latencyMs: int("latencyMs").notNull(),
+  runByUserId: int("runByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type KnowledgeSource = typeof knowledgeSources.$inferSelect;

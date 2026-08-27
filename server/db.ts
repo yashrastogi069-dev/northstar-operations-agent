@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   agentApprovals,
   agentArtifacts,
+  agentEvaluationResults,
   agentIntegrations,
   agentMemories,
   agentRuns,
@@ -460,4 +461,16 @@ export async function listAgentIntegrations() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(agentIntegrations).orderBy(desc(agentIntegrations.updatedAt));
+}
+
+export async function createAgentEvaluationResult(input: { scenarioName: string; request: string; expectedPolicy: "allow" | "review" | "block"; actualPolicy: "allow" | "review" | "block"; expectedTools?: AgentToolName[]; actualTools: AgentToolName[]; policyPass: boolean; toolPass: boolean; latencyMs: number; runByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  await db.insert(agentEvaluationResults).values({ ...input, expectedTools: input.expectedTools ?? null });
+}
+
+export async function listAgentEvaluationResults(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentEvaluationResults).orderBy(desc(agentEvaluationResults.createdAt)).limit(limit);
 }

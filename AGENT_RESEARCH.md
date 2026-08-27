@@ -47,3 +47,7 @@ Use **LangGraph as the primary orchestration runtime**, with LangChain tool inte
 3. Read-only tools may execute only from a named allowlist. Draft-producing tools are allowed to create internal artifacts. External writes, messaging, record updates, payments, destructive commands, and broad file access are blocked until a human approves a specific, auditable proposal.
 4. Every node records a trace event with run ID, inputs/outputs summary, allowed tool decision, timing, result, error class, and retry count. Failed recoverable nodes use bounded retries with idempotency keys; unrecoverable runs become reviewable failed cases.
 5. Evaluation covers intent routing, permission decisions, tool selection and argument correctness, retrieval relevance and groundedness, workflow completion, refusal quality, and user feedback. Production monitoring tracks error rate, latency, tool failures, approval outcomes, and safety-block rate.
+
+## Build smoke-test record
+
+The independently built Northstar application started successfully on a local deployment port and rendered its authentication boundary at the exposed preview URL. The unauthenticated screen states the scope and directs users through the configured sign-in flow; protected agent-workspace paths remain unavailable until a valid session is established. A complete signed-in interactive smoke test requires a project deployment with its OAuth and database environment configured.

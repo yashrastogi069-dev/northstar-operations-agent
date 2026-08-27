@@ -17,3 +17,4 @@
 - [ ] Verify desktop and mobile UI, type safety, production build, and current runtime health before final release.
 - [x] Fix LangGraph state-channel typing and run-trace iteration compatibility, then rerun the agent-runtime compile check.
 - [x] Resolve the LangGraph plan-channel and plan-node naming collision, then rerun the complete agent regression suite.
+- [ ] Add a LangGraph workflow test for a review-tier request to verify the persisted graph reaches an approval-required state without an external action.

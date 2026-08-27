@@ -7,12 +7,14 @@ import {
   createAgentApproval,
   createAgentArtifact,
   createAgentMemory,
+  createAgentEvaluationResult,
   createAgentRun,
   createAgentToolCall,
   getAgentRunForUser,
   listAgentApprovals,
   listAgentArtifacts,
   listAgentIntegrations,
+  listAgentEvaluationResults,
   listAgentMemories,
   listAgentRuns,
   listAgentStateSnapshots,
@@ -23,6 +25,7 @@ import {
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { classifyRequest } from "../lib/agentPolicy";
 import { runNorthstarGraph } from "../lib/agentGraph";
+import { evaluateAgentScenario } from "../lib/agentEvaluation";
 
 const runInput = z.object({
   request: z.string().trim().min(3).max(4_000),
@@ -106,4 +109,13 @@ export const agentRouter = router({
     }),
   }),
   integrations: protectedProcedure.query(async () => ({ configured: await listAgentIntegrations(), supported: ["SharePoint (read-only)", "Google Drive (read-only)", "Salesforce/HubSpot (read-only or draft-only)", "Slack/Teams (draft-only)", "Qdrant-compatible vector store"] })),
+  evaluations: router({
+    list: adminProcedure.input(z.object({ limit: z.number().int().min(1).max(200).default(100) })).query(({ input }) => listAgentEvaluationResults(input.limit)),
+    run: adminProcedure.input(z.object({ scenarioName: z.string().trim().min(3).max(180), request: z.string().trim().min(3).max(4_000), expectedPolicy: z.enum(["allow", "review", "block"]), expectedTools: z.array(z.enum(["knowledge_search", "public_research", "structured_analysis", "create_internal_draft"])).max(4).optional(), hasData: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
+      const outcome = evaluateAgentScenario(input);
+      await createAgentEvaluationResult({ ...input, ...outcome, runByUserId: ctx.user.id });
+      await addAuditEvent({ actorUserId: ctx.user.id, eventType: "agent.evaluation_run", entityType: "agent_evaluation", severity: outcome.policyPass && outcome.toolPass ? "info" : "warning", details: { scenarioName: input.scenarioName, policyPass: outcome.policyPass, toolPass: outcome.toolPass } });
+      return outcome;
+    }),
+  }),
 });
