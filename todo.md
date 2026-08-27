@@ -13,7 +13,7 @@
 - [x] Add public-safe architecture, deployment, and connection documentation with citations to current primary sources.
 - [x] Add and run Vitest coverage for graph routing, policy gates, tool validation, workflow state, and access controls.
 - [x] Create a public GitHub repository, push public-safe code only, and synchronize final changes.
-- [ ] Commit and push public-safe source after each major implementation milestone and before final delivery.
+- [x] Commit and push public-safe source after each major implementation milestone and before final delivery.
 - [ ] Verify desktop and mobile UI, type safety, production build, and current runtime health before final release.
 - [x] Fix LangGraph state-channel typing and run-trace iteration compatibility, then rerun the agent-runtime compile check.
 - [x] Resolve the LangGraph plan-channel and plan-node naming collision, then rerun the complete agent regression suite.
