@@ -27,6 +27,14 @@ export const TOOL_CATALOG: Record<AgentToolName, { label: string; tier: 1 | 2; d
   create_internal_draft: { label: "Internal draft", tier: 2, access: "draft_only", description: "Creates an internal draft artifact. It never sends, publishes, or updates another system." },
 };
 
+/** Reusable business workflows; every submitted request still passes the policy gate. */
+export const WORKFLOW_TEMPLATES = [
+  { id: "research_brief", title: "Research brief", description: "Research a public topic and prepare an evidence-bounded internal brief.", request: "Research the current background on [topic] and prepare an internal briefing.", intendedTools: ["public_research", "create_internal_draft"] as AgentToolName[] },
+  { id: "document_analysis", title: "Document analysis", description: "Compare a question against approved firm sources and prepare an internal summary.", request: "Review the approved firm knowledge on [subject] and prepare an internal summary with evidence.", intendedTools: ["knowledge_search", "create_internal_draft"] as AgentToolName[] },
+  { id: "operational_triage", title: "Operational triage", description: "Analyse a supplied table locally and turn observations into a reviewable next-step draft.", request: "Analyse the supplied operational data and prepare an internal triage summary.", intendedTools: ["structured_analysis", "create_internal_draft"] as AgentToolName[] },
+  { id: "reviewable_draft", title: "Reviewable draft", description: "Prepare—not send—a proposed external or record-update communication for named human review.", request: "Prepare a draft for [recipient or record] about [topic]. Do not send or update anything.", intendedTools: ["knowledge_search", "create_internal_draft"] as AgentToolName[] },
+] as const;
+
 export function classifyRequest(request: string, hasData = false): PolicyDecision {
   const normalized = request.trim();
   if (BLOCKED_PATTERNS.test(normalized)) {

@@ -5,16 +5,25 @@
 - [x] Implement guarded tools for firm-knowledge retrieval, public research, structured-data analysis, and internal drafting.
 - [x] Add a tool policy engine with allowlists, risk tiers, input validation, timeouts, rate limits, and no-write-by-default controls.
 - [x] Add human approval interruptions for every consequential or connection-backed action.
-- [ ] Add RAG retrieval with a Qdrant-compatible vector-store adapter and safe local fallback.
-- [ ] Add workflow templates for research briefs, document analysis, operational triage, and draft preparation.
+- [x] Add RAG retrieval with a Qdrant-compatible vector-store adapter and safe local fallback.
+- [x] Add workflow templates for research briefs, document analysis, operational triage, and draft preparation.
 - [ ] Add agent evaluation datasets, trajectory checks, tool-use checks, output-quality checks, and user feedback.
 - [ ] Add an observability workspace for run traces, step timing, tool outputs, costs, failures, and approval queues.
-- [ ] Build the focused agent workspace with task intake, agent runs, workflows, knowledge, approvals, evaluations, controls, and integration readiness.
-- [ ] Add public-safe architecture, deployment, and connection documentation with citations to current primary sources.
-- [ ] Add and run Vitest coverage for graph routing, policy gates, tool validation, workflow state, and access controls.
-- [ ] Create a public GitHub repository, push public-safe code only, and synchronize final changes.
+- [x] Build the focused agent workspace with task intake, agent runs, workflows, knowledge, approvals, evaluations, controls, and integration readiness.
+- [x] Add public-safe architecture, deployment, and connection documentation with citations to current primary sources.
+- [x] Add and run Vitest coverage for graph routing, policy gates, tool validation, workflow state, and access controls.
+- [x] Create a public GitHub repository, push public-safe code only, and synchronize final changes.
 - [ ] Commit and push public-safe source after each major implementation milestone and before final delivery.
 - [ ] Verify desktop and mobile UI, type safety, production build, and current runtime health before final release.
 - [x] Fix LangGraph state-channel typing and run-trace iteration compatibility, then rerun the agent-runtime compile check.
 - [x] Resolve the LangGraph plan-channel and plan-node naming collision, then rerun the complete agent regression suite.
-- [ ] Add a LangGraph workflow test for a review-tier request to verify the persisted graph reaches an approval-required state without an external action.
+- [x] Add a LangGraph workflow test for a review-tier request to verify the persisted graph reaches an approval-required state without an external action.
+- [x] Fix the model-planning type import and rerun type validation before continuing the agent release checks.
+- [x] Add owner-authorized post-run feedback signals and safety-report audit escalation.
+- [x] Add controlled, idempotent fresh-run recovery for eligible failed read-only runs, with tabular input replay blocked for privacy.
+- [x] Enforce user-memory privacy: ordinary administrators do not receive other users’ user-scoped memory.
+- [ ] Attach Northstar to its own managed database, OAuth identity, and deployment; apply reviewed migrations only there.
+- [ ] Complete a true durable LangGraph checkpointer and native interrupt/resume path before enabling any connected-system effect.
+- [ ] Add trajectory, groundedness, citation, latency, token/cost, and refusal-quality evaluation measures using firm-approved test cases.
+- [ ] Add configured embeddings and activate the optional Qdrant route only after a firm-approved vector processing boundary is supplied.
+- [ ] Run authenticated desktop and mobile visual verification against Northstar’s dedicated deployment.

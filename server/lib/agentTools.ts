@@ -1,6 +1,8 @@
 import { getAuthorizedCandidates } from "../db";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 import { rankEvidence, shouldDecline } from "./knowledge";
 import type { AgentToolName } from "./agentPolicy";
+import { z } from "zod";
 
 export type AgentToolResult = {
   toolName: AgentToolName;
@@ -53,9 +55,18 @@ function analyseDelimitedData(dataText: string): AgentToolResult {
   return { toolName: "structured_analysis", status: "succeeded", summary: `Analysed ${rows.length.toLocaleString()} row${rows.length === 1 ? "" : "s"} across ${headers.length} column${headers.length === 1 ? "" : "s"}.${measures.length ? ` ${measures.join("; ")}.` : " No numeric columns were detected."}`, citations: [], data: { rowCount: rows.length, headers, numeric }, durationMs: Date.now() - started };
 }
 
+const commonSchema = z.object({ query: z.string().trim().min(1).max(4_000), role: z.enum(["admin", "user"]), dataText: z.string().max(400_000).optional(), title: z.string().max(220).optional() });
+const encode = (result: AgentToolResult) => JSON.stringify(result);
+
+/** Actual LangChain structured tools. Their schemas are part of the agent's safety boundary. */
+export const northstarLangChainTools: Record<AgentToolName, DynamicStructuredTool> = {
+  knowledge_search: new DynamicStructuredTool({ name: "knowledge_search", description: "Search approved firm knowledge visible to the current operator.", schema: commonSchema, func: async input => encode(await searchFirmKnowledge(input.query, input.role)) }),
+  public_research: new DynamicStructuredTool({ name: "public_research", description: "Look up public reference material using the bounded reference-search provider.", schema: commonSchema, func: async input => encode(await researchWikipedia(input.query)) }),
+  structured_analysis: new DynamicStructuredTool({ name: "structured_analysis", description: "Profile supplied CSV or tab-delimited data locally without running code.", schema: commonSchema.refine(input => Boolean(input.dataText?.trim()), { message: "Structured analysis requires dataText." }), func: async input => encode(analyseDelimitedData(input.dataText ?? "")) }),
+  create_internal_draft: new DynamicStructuredTool({ name: "create_internal_draft", description: "Declare an internal draft request. It does not send, publish, or update any external system.", schema: commonSchema, func: async () => encode({ toolName: "create_internal_draft", status: "succeeded", summary: "Internal draft requested; final content is created only after evidence synthesis.", citations: [], durationMs: 0 }) }),
+};
+
 export async function executeAgentTool(toolName: AgentToolName, input: { query: string; role: "admin" | "user"; dataText?: string; title?: string }): Promise<AgentToolResult> {
-  if (toolName === "knowledge_search") return searchFirmKnowledge(input.query, input.role);
-  if (toolName === "public_research") return researchWikipedia(input.query);
-  if (toolName === "structured_analysis") return analyseDelimitedData(input.dataText ?? "");
-  return { toolName: "create_internal_draft", status: "succeeded", summary: "Internal draft requested; final content is created only after evidence synthesis.", citations: [], durationMs: 0 };
+  const raw = await northstarLangChainTools[toolName].invoke(input);
+  return JSON.parse(String(raw)) as AgentToolResult;
 }

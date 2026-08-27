@@ -29,6 +29,20 @@
       "when": 1787859416022,
       "tag": "0003_minor_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787860119387,
+      "tag": "0004_new_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787860435971,
+      "tag": "0005_great_the_phantom",
+      "breakpoints": true
     }
   ]
 }

@@ -167,6 +167,7 @@ export const agentRuns = mysqlTable("agentRuns", {
   result: mediumtext("result"),
   errorMessage: text("errorMessage"),
   retryCount: int("retryCount").default(0).notNull(),
+  recoveryOfRunId: int("recoveryOfRunId").unique(),
   ownerUserId: int("ownerUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -266,6 +267,17 @@ export const agentEvaluationResults = mysqlTable("agentEvaluationResults", {
   toolPass: boolean("toolPass").notNull(),
   latencyMs: int("latencyMs").notNull(),
   runByUserId: int("runByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** Human feedback on an agent run; retained separately from source-chat feedback. */
+export const agentRunFeedback = mysqlTable("agentRunFeedback", {
+  id: int("id").autoincrement().primaryKey(),
+  runId: int("runId").notNull(),
+  rating: mysqlEnum("rating", ["helpful", "not_helpful", "safety_concern"]).notNull(),
+  comment: text("comment"),
+  reporterUserId: int("reporterUserId").notNull(),
+  reviewed: boolean("reviewed").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

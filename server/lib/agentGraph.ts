@@ -1,6 +1,6 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import { invokeLLM } from "../_core/llm";
-import { classifyRequest, createDeterministicPlan, validateToolInput, type AgentPlan, type AgentRiskTier, type AgentTaskType } from "./agentPolicy";
+import { classifyRequest, createDeterministicPlan, validateToolInput, type AgentPlan, type AgentRiskTier, type AgentTaskType, type AgentToolName } from "./agentPolicy";
 import { executeAgentTool, type AgentToolResult } from "./agentTools";
 
 type TraceEvent = { node: string; at: string; detail: string };
@@ -44,7 +44,21 @@ function contextNode(state: NorthstarGraphState) {
 
 async function planNode(state: NorthstarGraphState) {
   const base = createDeterministicPlan(state.request, { allowed: state.allowed, riskTier: state.riskTier, reason: state.policyReason, taskType: state.taskType }, Boolean(state.dataText?.trim()));
-  return { plan: base, trace: trace(state, "plan", `Prepared a bounded ${base.taskType} plan with ${base.tools.length} registered tool${base.tools.length === 1 ? "" : "s"}.`) };
+  try {
+    const response = await invokeLLM({
+      model: "gpt-5-mini",
+      maxTokens: 520,
+      outputSchema: { name: "northstar_bounded_plan", strict: true, schema: { type: "object", additionalProperties: false, properties: { tools: { type: "array", items: { type: "string", enum: ["knowledge_search", "public_research", "structured_analysis", "create_internal_draft"] }, maxItems: 4 }, rationale: { type: "string", maxLength: 400 } }, required: ["tools", "rationale"] } },
+      messages: [{ role: "system", content: `Select a minimal ordered subset of only these deterministic policy-approved candidate tools: ${base.tools.join(", ") || "none"}. You cannot add a tool. You cannot approve, send, write, or execute an external action. Return JSON only.` }, { role: "user", content: state.request }],
+    });
+    const raw = response.choices[0]?.message.content;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) as { tools?: unknown; rationale?: unknown } : {};
+    const selected = Array.isArray(parsed.tools) ? parsed.tools.filter((tool): tool is AgentToolName => typeof tool === "string" && base.tools.includes(tool as AgentToolName)) : [];
+    const plan = { ...base, tools: selected.length ? selected : base.tools };
+    return { plan, trace: trace(state, "plan", `Validated a model-led selection of ${plan.tools.length} policy-approved tool(s); no new capability was granted.`) };
+  } catch {
+    return { plan: base, trace: trace(state, "plan", `Model planning was unavailable or invalid; used deterministic bounded plan with ${base.tools.length} registered tool(s).`) };
+  }
 }
 
 async function toolsNode(state: NorthstarGraphState) {

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   agentApprovals,
@@ -6,6 +6,7 @@ import {
   agentEvaluationResults,
   agentIntegrations,
   agentMemories,
+  agentRunFeedback,
   agentRuns,
   agentStateSnapshots,
   agentToolCalls,
@@ -351,7 +352,7 @@ export async function getWorkspaceSummary(role: "admin" | "user", userId: number
   };
 }
 
-export async function createAgentRun(input: { threadId: string; title: string; request: string; taskType: AgentTaskType; riskTier: AgentRiskTier; ownerUserId: number }) {
+export async function createAgentRun(input: { threadId: string; title: string; request: string; taskType: AgentTaskType; riskTier: AgentRiskTier; ownerUserId: number; recoveryOfRunId?: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");
   const result = await db.insert(agentRuns).values({ ...input, status: "running" });
@@ -368,6 +369,16 @@ export async function getAgentRunForUser(runId: number, userId: number, role: "a
   const db = await getDb();
   if (!db) return undefined;
   const where = role === "admin" ? eq(agentRuns.id, runId) : and(eq(agentRuns.id, runId), eq(agentRuns.ownerUserId, userId));
+  const rows = await db.select().from(agentRuns).where(where).limit(1);
+  return rows[0];
+}
+
+export async function getAgentRecoveryForUser(recoveryOfRunId: number, userId: number, role: "admin" | "user") {
+  const db = await getDb();
+  if (!db) return undefined;
+  const where = role === "admin"
+    ? eq(agentRuns.recoveryOfRunId, recoveryOfRunId)
+    : and(eq(agentRuns.recoveryOfRunId, recoveryOfRunId), eq(agentRuns.ownerUserId, userId));
   const rows = await db.select().from(agentRuns).where(where).limit(1);
   return rows[0];
 }
@@ -446,7 +457,13 @@ export async function listAgentArtifacts(runId?: number) {
 export async function listAgentMemories(userId: number, role: "admin" | "user") {
   const db = await getDb();
   if (!db) return [];
-  const where = role === "admin" ? eq(agentMemories.status, "active") : and(eq(agentMemories.status, "active"), eq(agentMemories.ownerUserId, userId));
+  // User memories are private to their owner, including from ordinary administrators.
+  // Firm memory is shared only when its classification permits the caller to see it.
+  const personalMemory = and(eq(agentMemories.scope, "user"), eq(agentMemories.ownerUserId, userId));
+  const firmMemory = role === "admin"
+    ? eq(agentMemories.scope, "firm")
+    : and(eq(agentMemories.scope, "firm"), eq(agentMemories.sensitivity, "internal"));
+  const where = and(eq(agentMemories.status, "active"), or(personalMemory, firmMemory));
   return db.select().from(agentMemories).where(where).orderBy(desc(agentMemories.updatedAt));
 }
 
@@ -473,4 +490,17 @@ export async function listAgentEvaluationResults(limit = 100) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(agentEvaluationResults).orderBy(desc(agentEvaluationResults.createdAt)).limit(limit);
+}
+
+export async function createAgentRunFeedback(input: { runId: number; rating: "helpful" | "not_helpful" | "safety_concern"; comment?: string; reporterUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  const result = await db.insert(agentRunFeedback).values({ ...input, comment: input.comment ?? null });
+  return Number(result[0].insertId);
+}
+
+export async function listAgentRunFeedback(runId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentRunFeedback).where(eq(agentRunFeedback.runId, runId)).orderBy(desc(agentRunFeedback.createdAt));
 }

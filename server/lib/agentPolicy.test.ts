@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyRequest, createDeterministicPlan, validateToolInput } from "./agentPolicy";
+import { classifyRequest, createDeterministicPlan, TOOL_CATALOG, validateToolInput, WORKFLOW_TEMPLATES } from "./agentPolicy";
 
 describe("Northstar agent policy", () => {
   it("blocks prompt-injection and credential-exfiltration requests before planning", () => {
@@ -24,5 +24,10 @@ describe("Northstar agent policy", () => {
     expect(validateToolInput("structured_analysis", { dataText: "name,value\nA,3" })).toBe(true);
     expect(validateToolInput("structured_analysis", { dataText: "" })).toBe(false);
     expect(validateToolInput("knowledge_search", { query: "HR policy" })).toBe(true);
+  });
+
+  it("keeps reusable workflow templates inside the registered tool catalog", () => {
+    expect(WORKFLOW_TEMPLATES.map(template => template.id)).toEqual(["research_brief", "document_analysis", "operational_triage", "reviewable_draft"]);
+    expect(WORKFLOW_TEMPLATES.flatMap(template => template.intendedTools).every(tool => tool in TOOL_CATALOG)).toBe(true);
   });
 });
