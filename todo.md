@@ -1,10 +1,10 @@
 # Project TODO
 
-- [ ] Build one deployable LangGraph operations agent with deterministic policy gates and agentic specialist routing.
-- [ ] Add persistent run threads, graph-state snapshots, tool calls, trace events, and approval records.
-- [ ] Implement guarded tools for firm-knowledge retrieval, public research, structured-data analysis, and internal drafting.
-- [ ] Add a tool policy engine with allowlists, risk tiers, input validation, timeouts, rate limits, and no-write-by-default controls.
-- [ ] Add human approval interruptions for every consequential or connection-backed action.
+- [x] Build one deployable LangGraph operations agent with deterministic policy gates and agentic specialist routing.
+- [x] Add persistent run threads, graph-state snapshots, tool calls, trace events, and approval records.
+- [x] Implement guarded tools for firm-knowledge retrieval, public research, structured-data analysis, and internal drafting.
+- [x] Add a tool policy engine with allowlists, risk tiers, input validation, timeouts, rate limits, and no-write-by-default controls.
+- [x] Add human approval interruptions for every consequential or connection-backed action.
 - [ ] Add RAG retrieval with a Qdrant-compatible vector-store adapter and safe local fallback.
 - [ ] Add workflow templates for research briefs, document analysis, operational triage, and draft preparation.
 - [ ] Add agent evaluation datasets, trajectory checks, tool-use checks, output-quality checks, and user feedback.
@@ -13,4 +13,7 @@
 - [ ] Add public-safe architecture, deployment, and connection documentation with citations to current primary sources.
 - [ ] Add and run Vitest coverage for graph routing, policy gates, tool validation, workflow state, and access controls.
 - [ ] Create a public GitHub repository, push public-safe code only, and synchronize final changes.
+- [ ] Commit and push public-safe source after each major implementation milestone and before final delivery.
 - [ ] Verify desktop and mobile UI, type safety, production build, and current runtime health before final release.
+- [x] Fix LangGraph state-channel typing and run-trace iteration compatibility, then rerun the agent-runtime compile check.
+- [x] Resolve the LangGraph plan-channel and plan-node naming collision, then rerun the complete agent regression suite.
