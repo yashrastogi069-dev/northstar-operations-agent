@@ -28,7 +28,7 @@ Source administration remains available through the Knowledge route for administ
 
 ## Independence guarantees
 
-Atlas is not modified by this addition. Northstar does not import Atlas’s environment files, OAuth credentials, uploaded documents, database exports, raw audit traces, or user data. Northstar’s Evidence Desk uses Northstar’s own route contracts, database records, authentication context, and storage configuration. The public repository contains source and documentation only.
+Atlas application source, schema, routes, database, and deployment are not modified by this addition. The Atlas working tree contains unrelated pre-existing checklist entries for the Northstar project, which were not created by this Evidence Desk change. Northstar does not import Atlas’s environment files, OAuth credentials, uploaded documents, database exports, raw audit traces, or user data. Northstar’s Evidence Desk uses Northstar’s own route contracts, database records, authentication context, and storage configuration. The public repository contains source and documentation only.
 
 Atlas and Northstar may evolve at different speeds. The copied capability is therefore treated as a deliberate Northstar implementation snapshot, with parity and authorization tests maintained in Northstar rather than an implicit live dependency on Atlas. Future Atlas improvements must be explicitly reviewed before being reproduced in Northstar.
 
