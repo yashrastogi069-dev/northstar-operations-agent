@@ -38,3 +38,5 @@
 - [ ] Configure external OAuth, model provider, object storage, and production secrets without committing credentials.
 - [ ] Deploy Northstar externally, run migrations, verify health and protected routes, and publish the production URL.
 - [x] Produce a complete manual Railway deployment runbook for Northstar, including required external-provider substitutions for managed services.
+- [x] Redesign Northstar with a high-contrast dark visual system so navigation, text, forms, results, and safety states are clearly visible.
+- [ ] Verify the redesigned Northstar workspace at desktop and mobile breakpoints and re-run type and production-build checks.
