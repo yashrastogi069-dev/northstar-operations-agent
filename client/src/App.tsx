@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Approvals from "./pages/Approvals";
 import Controls from "./pages/Controls";
 import Evaluation from "./pages/Evaluation";
+import EvidenceDesk from "./pages/EvidenceDesk";
 import Guide from "./pages/Guide";
 import Home from "./pages/Home";
 import Memory from "./pages/Memory";
@@ -20,6 +21,7 @@ function Router() {
     <DashboardLayout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/evidence" component={EvidenceDesk} />
         <Route path="/runs" component={Runs} />
         <Route path="/approvals" component={Approvals} />
         <Route path="/memory" component={Memory} />

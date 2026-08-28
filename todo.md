@@ -40,3 +40,14 @@
 - [x] Produce a complete manual Railway deployment runbook for Northstar, including required external-provider substitutions for managed services.
 - [x] Redesign Northstar with a high-contrast dark visual system so navigation, text, forms, results, and safety states are clearly visible.
 - [ ] Verify the redesigned Northstar workspace at desktop and mobile breakpoints and re-run type and production-build checks.
+
+- [x] Add Atlas-derived evidence functionality inside Northstar under a distinct name while keeping Atlas independent.
+- [x] Add separate Evidence workspace navigation and preserve role-aware source controls, ingestion, hybrid retrieval, citations, feedback, audits, and draft-only workflows.
+- [ ] Verify evidence authorization, retrieval, citations, workflow behavior, UI visibility, and that Atlas files/repository/database/deployment remain untouched.
+- [x] Document and push the Northstar evidence-workspace addition as public-safe source.
+
+- [x] Freeze Atlas as the independent reference and map its evidence capabilities into Northstar’s own namespaced modules.
+- [x] Implement a separately named Northstar Evidence Desk with approved-source controls, ingestion, retrieval, citations, feedback, audits, evaluations, and draft-only evidence workflows.
+- [x] Add Northstar Evidence Desk navigation and preserve the existing Northstar Agent Desk routes and controls.
+- [ ] Add evidence parity, authorization, citation, audit, feedback, evaluation, and UI regression tests.
+- [ ] Verify Atlas repository, database, deployment, and routes remain untouched; update documentation and push public-safe milestones.

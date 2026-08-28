@@ -18,6 +18,7 @@ import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   Activity,
+  BookOpen,
   Bot,
   BrainCircuit,
   CheckSquare,
@@ -32,6 +33,7 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
 const workspace = [
   { icon: Bot, label: "Agent desk", path: "/" },
+  { icon: BookOpen, label: "Evidence Desk", path: "/evidence" },
   { icon: History, label: "Run traces", path: "/runs" },
   { icon: CheckSquare, label: "Approvals", path: "/approvals" },
   { icon: BrainCircuit, label: "Memory", path: "/memory" },
