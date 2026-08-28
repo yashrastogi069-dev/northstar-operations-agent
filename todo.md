@@ -33,3 +33,8 @@
 - [x] Record shared-test deployment readiness, synchronize public-safe source, and provide the temporary controlled test access path.
 - [x] Perform controlled shared-environment testing using an isolated Northstar namespace while preserving every Atlas table and user-facing route.
 - [x] Verify the live shared test service rejects unauthenticated protected agent routes with HTTP 401 and retains the isolated Northstar agent-table namespace.
+- [ ] Prepare Northstar for a provider-compatible external deployment with no dependency on Manus-managed runtime services.
+- [ ] Provision an externally hosted Node service and dedicated managed MySQL-compatible database under the user’s cloud account.
+- [ ] Configure external OAuth, model provider, object storage, and production secrets without committing credentials.
+- [ ] Deploy Northstar externally, run migrations, verify health and protected routes, and publish the production URL.
+- [x] Produce a complete manual Railway deployment runbook for Northstar, including required external-provider substitutions for managed services.
