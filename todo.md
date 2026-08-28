@@ -51,3 +51,12 @@
 - [x] Add Northstar Evidence Desk navigation and preserve the existing Northstar Agent Desk routes and controls.
 - [ ] Add evidence parity, authorization, citation, audit, feedback, evaluation, and UI regression tests.
 - [ ] Verify Atlas repository, database, deployment, and routes remain untouched; update documentation and push public-safe milestones.
+
+- [ ] Add public-safe `.env.example` templates for Atlas and Northstar local Windows setup.
+- [ ] Add one-click Windows CMD launchers named for Atlas and Northstar, plus optional launch-both helper, without credentials.
+- [ ] Document Windows prerequisites, local database setup, environment values, ports, and safe local-run commands for both agents.
+- [ ] Validate batch-script syntax and local build/test behavior, run repository hygiene checks, and push both repositories’ launcher updates.
+
+- [x] Add a public-safe Northstar `.env.example` for local Windows setup.
+- [x] Add a one-click Northstar Windows CMD launcher and local-run guide; leave Atlas unchanged.
+- [x] Validate the Northstar launcher syntax, local commands, tests, build, and repository hygiene, then push the milestone.
