@@ -60,3 +60,7 @@
 - [x] Add a public-safe Northstar `.env.example` for local Windows setup.
 - [x] Add a one-click Northstar Windows CMD launcher and local-run guide; leave Atlas unchanged.
 - [x] Validate the Northstar launcher syntax, local commands, tests, build, and repository hygiene, then push the milestone.
+
+- [x] Fix Northstar’s POSIX-only `NODE_ENV=...` package scripts so `pnpm dev` and `pnpm start` run in Windows CMD.
+- [x] Update Northstar’s Windows local-run guide with the repaired commands and exact `.env` placeholder requirements.
+- [x] Verify the Windows launcher structure, type checks, tests, build, and public-source hygiene, then push the startup fix.

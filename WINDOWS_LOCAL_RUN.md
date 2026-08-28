@@ -78,13 +78,14 @@ The launcher checks for Node.js, pnpm, the repository root, `.env`, and dependen
 http://localhost:3004
 ```
 
-You can also start it manually:
+You can also start it manually. The `dev` package script now sets `NODE_ENV` through `cross-env`, so this works in Windows CMD, PowerShell, macOS, and Linux:
 
 ```cmd
-set NODE_ENV=development
 set PORT=3004
 pnpm dev
 ```
+
+You do not need to type `NODE_ENV=development` yourself. The project script sets it correctly for your operating system.
 
 Use `Ctrl+C` in the running Command Prompt window to stop the server.
 
@@ -109,7 +110,7 @@ Use only synthetic or approved development documents during local testing. Do no
 
 ## Troubleshooting
 
-If the launcher creates `.env` and exits, edit `.env` and run it again. If `pnpm` is not recognized, reopen Command Prompt after installing pnpm or run `npm install --global pnpm` again. If the database connection fails, verify that MySQL is running, the database exists, the user has the required permissions, and `DATABASE_URL` has no unescaped special characters in its password. If port `3004` is busy, close the existing Northstar window or run manually with another port, for example `set PORT=3005` followed by `pnpm dev`.
+If the launcher creates `.env` and exits, edit `.env` and run it again. If you already have a copied Northstar checkout, pull the latest repository change before testing so the cross-platform `cross-env` script fix is present. If `pnpm` is not recognized, reopen Command Prompt after installing pnpm or run `npm install --global pnpm` again. If the database connection fails, verify that MySQL is running, the database exists, the user has the required permissions, and `DATABASE_URL` has no unescaped special characters in its password. If port `3004` is busy, close the existing Northstar window or run manually with another port, for example `set PORT=3005` followed by `pnpm dev`.
 
 If OAuth redirects to a wrong application, the local `.env` is using an incorrect `VITE_APP_ID` or callback configuration. Create or select a Northstar-specific development OAuth application and register the local callback URL required by the authentication provider. Do not disable the authentication boundary to work around this issue.
 
