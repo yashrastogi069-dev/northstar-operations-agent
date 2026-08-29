@@ -68,6 +68,45 @@ export async function notifyOwner(
 ): Promise<boolean> {
   const { title, content } = validatePayload(payload);
 
+  if (ENV.notificationWebhookUrl) {
+    let webhookUrl: URL;
+    try {
+      webhookUrl = new URL(ENV.notificationWebhookUrl);
+      if (webhookUrl.protocol !== "https:") throw new Error("HTTPS required");
+    } catch {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Notification webhook must be a valid HTTPS URL.",
+      });
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7500);
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          accept: "application/json",
+          ...(ENV.notificationWebhookToken
+            ? { authorization: `Bearer ${ENV.notificationWebhookToken}` }
+            : {}),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ title, content, text: `${title}\n\n${content}` }),
+      });
+      clearTimeout(timeout);
+      if (!response.ok) {
+        console.warn(`[Notification] External webhook failed (${response.status})`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn("[Notification] External webhook error:", error);
+      return false;
+    }
+  }
+
   if (!ENV.forgeApiUrl) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",

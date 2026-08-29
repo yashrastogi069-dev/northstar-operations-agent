@@ -170,7 +170,7 @@ class SDKServer {
     return this.signSession(
       {
         openId,
-        appId: ENV.appId,
+        appId: ENV.appId || ENV.oidcClientId || "northstar",
         name: options.name || "",
       },
       options

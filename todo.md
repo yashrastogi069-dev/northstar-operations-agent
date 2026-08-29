@@ -64,3 +64,8 @@
 - [x] Fix Northstar’s POSIX-only `NODE_ENV=...` package scripts so `pnpm dev` and `pnpm start` run in Windows CMD.
 - [x] Update Northstar’s Windows local-run guide with the repaired commands and exact `.env` placeholder requirements.
 - [x] Verify the Windows launcher structure, type checks, tests, build, and public-source hygiene, then push the startup fix.
+
+- [x] Add provider-neutral external configuration for Auth0/OIDC, OpenAI-compatible LLM, and S3-compatible storage while retaining secure defaults.
+- [x] Replace managed-only login, model, storage, and notification assumptions with explicit external adapters or safe unsupported states.
+- [x] Add non-Manus configuration tests; the complete provider acquisition guide with official references is done.
+- [x] Run dedicated external-adapter authorization tests and push the portability milestone; core type, behavior, build, local-start, and hygiene checks currently pass.

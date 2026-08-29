@@ -40,7 +40,7 @@ copy .env.example .env
 notepad .env
 ```
 
-Replace all `replace-with-...` values. At minimum, use a dedicated database URL, a long random `JWT_SECRET`, an authorized OAuth application identity, and authorized model/storage proxy values. Do not use Atlas production credentials or Atlas production data. Do not commit `.env`; it is ignored by Git.
+Replace all `replace-with-...` values. For a fully external setup with no Manus services, follow `NON_MANUS_SETUP.md`; it explains Auth0/OIDC, OpenAI-compatible inference, S3-compatible storage, optional webhooks, and Railway MySQL. Do not use Atlas production credentials or Atlas production data. Do not commit `.env`; it is ignored by Git.
 
 For a purely local development database, the database URL should point to your local MySQL-compatible server, for example:
 
@@ -48,7 +48,7 @@ For a purely local development database, the database URL should point to your l
 DATABASE_URL=mysql://northstar_user:your-password@127.0.0.1:3306/northstar_local
 ```
 
-The current application uses managed OAuth, model, storage, and notification helpers. Therefore, a local run requires authorized development values for those services. Do not replace missing credentials with anonymous access; Northstar must remain authenticated and governed.
+Northstar supports the external OIDC, model, S3-compatible storage, and webhook settings documented in `NON_MANUS_SETUP.md`. If those external values are not configured yet, the corresponding feature will fail clearly; do not replace missing credentials with anonymous access. Northstar must remain authenticated and governed.
 
 ## 4. Install dependencies and apply the schema
 

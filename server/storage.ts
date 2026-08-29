@@ -1,31 +1,80 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
-
+import { randomUUID } from "node:crypto";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ENV } from "./_core/env";
-
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
-
-  if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
-  }
-
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
-}
 
 function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, "");
 }
 
 function appendHashSuffix(relKey: string): string {
-  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const hash = randomUUID().replace(/-/g, "").slice(0, 8);
   const lastDot = relKey.lastIndexOf(".");
   if (lastDot === -1) return `${relKey}_${hash}`;
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+}
+
+function hasExternalStorageConfig(): boolean {
+  return Boolean(
+    ENV.storageEndpoint &&
+      ENV.storageBucket &&
+      ENV.storageAccessKeyId &&
+      ENV.storageSecretAccessKey,
+  );
+}
+
+function externalClient(): S3Client {
+  if (!hasExternalStorageConfig()) {
+    throw new Error(
+      "External storage is not configured. Set S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY.",
+    );
+  }
+
+  return new S3Client({
+    region: ENV.storageRegion,
+    endpoint: ENV.storageEndpoint,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: ENV.storageAccessKeyId,
+      secretAccessKey: ENV.storageSecretAccessKey,
+    },
+  });
+}
+
+function legacyForgeConfig() {
+  if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
+    throw new Error(
+      "Storage is not configured. Prefer S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY_ID/S3_SECRET_ACCESS_KEY for external deployment.",
+    );
+  }
+  return { forgeUrl: ENV.forgeApiUrl.replace(/\/+$/, ""), forgeKey: ENV.forgeApiKey };
+}
+
+async function legacyStoragePut(
+  key: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string,
+): Promise<{ key: string; url: string }> {
+  const { forgeUrl, forgeKey } = legacyForgeConfig();
+  const presignUrl = new URL("v1/storage/presign/put", `${forgeUrl}/`);
+  presignUrl.searchParams.set("path", key);
+  const presignResp = await fetch(presignUrl, {
+    headers: { Authorization: `Bearer ${forgeKey}` },
+  });
+  if (!presignResp.ok) {
+    const msg = await presignResp.text().catch(() => presignResp.statusText);
+    throw new Error(`Legacy storage presign failed (${presignResp.status}): ${msg}`);
+  }
+  const { url } = (await presignResp.json()) as { url?: string };
+  if (!url) throw new Error("Legacy storage returned an empty presign URL");
+  const body = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
+  const uploadResp = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body,
+  });
+  if (!uploadResp.ok) throw new Error(`Legacy storage upload failed (${uploadResp.status})`);
+  return { key, url: `/manus-storage/${key}` };
 }
 
 export async function storagePut(
@@ -33,65 +82,63 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
+  if (!hasExternalStorageConfig()) return legacyStoragePut(key, data, contentType);
 
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
-
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
-  return { key, url: `/manus-storage/${key}` };
+  const client = externalClient();
+  const body = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
+  await client.send(
+    new PutObjectCommand({
+      Bucket: ENV.storageBucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+  const url = await getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: ENV.storageBucket, Key: key }),
+    { expiresIn: 900 },
+  );
+  return { key, url };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
+  return { key, url: await storageGetSignedUrl(key) };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = normalizeKey(relKey);
-
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
+  if (!hasExternalStorageConfig()) {
+    const { forgeUrl, forgeKey } = legacyForgeConfig();
+    const getUrl = new URL("v1/storage/presign/get", `${forgeUrl}/`);
+    getUrl.searchParams.set("path", key);
+    const response = await fetch(getUrl, {
+      headers: { Authorization: `Bearer ${forgeKey}` },
+    });
+    if (!response.ok) {
+      const msg = await response.text().catch(() => response.statusText);
+      throw new Error(`Legacy storage signed URL failed (${response.status}): ${msg}`);
+    }
+    const { url } = (await response.json()) as { url?: string };
+    if (!url) throw new Error("Legacy storage returned an empty signed URL");
+    return url;
   }
 
-  const { url } = (await resp.json()) as { url: string };
-  return url;
+  return getSignedUrl(
+    externalClient(),
+    new GetObjectCommand({ Bucket: ENV.storageBucket, Key: key }),
+    { expiresIn: 900 },
+  );
 }
+
+export function externalStorageReady(): boolean {
+  return hasExternalStorageConfig();
+}
+
+export function storageProvider(): "s3-compatible" | "legacy-managed" {
+  return hasExternalStorageConfig() ? "s3-compatible" : "legacy-managed";
+}
+
+export const storage = { externalStorageReady, storageProvider };
