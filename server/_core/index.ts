@@ -30,10 +30,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   const app = express();
-   console.log("[DEBUG] S3_ENDPOINT:", JSON.stringify(process.env.S3_ENDPOINT));
-   console.log("[DEBUG] S3_ACCESS_KEY_ID length:", (process.env.S3_ACCESS_KEY_ID || "").length);
-   console.log("[DEBUG] S3_SECRET_ACCESS_KEY length:", (process.env.S3_SECRET_ACCESS_KEY || "").length);
-  //temp debug logging
+  console.log("[DEBUG] S3_ENDPOINT:", JSON.stringify(process.env.S3_ENDPOINT));
+  console.log("[DEBUG] S3_ACCESS_KEY_ID length:", (process.env.S3_ACCESS_KEY_ID || "").length);
+  console.log("[DEBUG] S3_SECRET_ACCESS_KEY length:", (process.env.S3_SECRET_ACCESS_KEY || "").length);
   app.set("trust proxy", 1);
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
@@ -69,3 +68,4 @@ async function startServer() {
 }
 
 startServer().catch(console.error);
+//temp debug logging
