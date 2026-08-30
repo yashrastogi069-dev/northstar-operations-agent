@@ -40,7 +40,7 @@ copy .env.example .env
 notepad .env
 ```
 
-Replace all `replace-with-...` values. For a fully external setup with no Manus services, follow `NON_MANUS_SETUP.md`; it explains Auth0/OIDC, OpenAI-compatible inference, S3-compatible storage, optional webhooks, and Railway MySQL. Do not use Atlas production credentials or Atlas production data. Do not commit `.env`; it is ignored by Git.
+For local testing without login, keep the `NORTHSTAR_*` values from `.env.example` exactly as written. Do not add Auth0, Manus OAuth, or fake OAuth values. You must still set a real local `DATABASE_URL`, a strong random `JWT_SECRET`, and any provider values needed for the features you plan to test. For a fully external setup later, follow `NON_MANUS_SETUP.md`; it explains Auth0/OIDC, OpenAI-compatible inference, S3-compatible storage, optional webhooks, and Railway MySQL. Do not use Atlas production credentials or Atlas production data. Do not commit `.env`; it is ignored by Git.
 
 For a purely local development database, the database URL should point to your local MySQL-compatible server, for example:
 
@@ -48,7 +48,7 @@ For a purely local development database, the database URL should point to your l
 DATABASE_URL=mysql://northstar_user:your-password@127.0.0.1:3306/northstar_local
 ```
 
-Northstar supports the external OIDC, model, S3-compatible storage, and webhook settings documented in `NON_MANUS_SETUP.md`. If those external values are not configured yet, the corresponding feature will fail clearly; do not replace missing credentials with anonymous access. Northstar must remain authenticated and governed.
+With `NORTHSTAR_ACCESS_MODE=local-operator` and `NORTHSTAR_LOCAL_NO_AUTH=true`, Northstar creates a database-backed local admin operator automatically for requests from `localhost` or `127.0.0.1`. This bypass is development-only, rejects production mode, and does not work from another computer on your network. OAuth remains required for an external deployment.
 
 ## 4. Install dependencies and apply the schema
 
@@ -99,7 +99,7 @@ pnpm test
 pnpm build
 ```
 
-Then open `http://localhost:3004`, sign in through the authorized OAuth flow, and test both Northstar workspaces:
+Then open `http://localhost:3004`. In local operator mode, do not click Authenticate and do not expect an OAuth screen—the app should open directly. If it still shows Authenticate, stop the server, confirm the five `NORTHSTAR_*` lines and a working local database in `.env`, then start the launcher again. Test both Northstar workspaces:
 
 | Workspace | Safe first test |
 |---|---|
@@ -112,7 +112,7 @@ Use only synthetic or approved development documents during local testing. Do no
 
 If the launcher creates `.env` and exits, edit `.env` and run it again. If you already have a copied Northstar checkout, pull the latest repository change before testing so the cross-platform `cross-env` script fix is present. If `pnpm` is not recognized, reopen Command Prompt after installing pnpm or run `npm install --global pnpm` again. If the database connection fails, verify that MySQL is running, the database exists, the user has the required permissions, and `DATABASE_URL` has no unescaped special characters in its password. If port `3004` is busy, close the existing Northstar window or run manually with another port, for example `set PORT=3005` followed by `pnpm dev`.
 
-If OAuth redirects to a wrong application, the local `.env` is using an incorrect `VITE_APP_ID` or callback configuration. Create or select a Northstar-specific development OAuth application and register the local callback URL required by the authentication provider. Do not disable the authentication boundary to work around this issue.
+If the app still asks for OAuth in local mode, confirm the URL is exactly `http://localhost:3004` (not a LAN IP), `NORTHSTAR_ACCESS_MODE=local-operator`, `NORTHSTAR_LOCAL_NO_AUTH=true`, and `NODE_ENV=development`. Confirm the local database is running and that migrations completed. The local operator is intentionally unavailable in production or through a non-loopback address.
 
 ## Source-control safety
 

@@ -9,7 +9,12 @@ export const ENV = {
   oidcScope: process.env.OIDC_SCOPE ?? "openid profile email",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction: process.env.NODE_ENV === "production",
+  localAccessMode: process.env.NORTHSTAR_ACCESS_MODE ?? "",
+  localNoAuth: process.env.NORTHSTAR_LOCAL_NO_AUTH === "true",
+  localOperatorId: process.env.NORTHSTAR_LOCAL_OPERATOR_ID ?? "local-operator",
+  localOperatorName: process.env.NORTHSTAR_LOCAL_OPERATOR_NAME ?? "Local Northstar Operator",
   // External-provider configuration is preferred. The legacy managed names remain
   // as a compatibility fallback until a deployment completes its migration.
   llmBaseUrl: process.env.OPENAI_BASE_URL ?? process.env.BUILT_IN_FORGE_API_URL ?? "",

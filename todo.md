@@ -79,3 +79,10 @@
 - [x] Evaluate a free self-hosted authentication path that can run locally without paid identity-provider quotas.
 - [x] Define local backup, password-reset, email, data-retention, and security boundaries so “free forever” is not confused with unlimited capacity or zero maintenance.
 - [x] Decide whether to implement local-only authentication mode separately from production OIDC/Cloudflare Access.
+
+- [x] Add an explicit localhost-only local operator mode so Northstar can be entered without external OAuth during development.
+- [x] Disable analytics initialization when local analytics variables are empty or unset, preventing literal placeholder URLs such as `%VITE_ANALYTICS_ENDPOINT%`.
+- [x] Add focused tests for local operator authorization, production rejection, and analytics placeholder safety; rerun full checks and build.
+- [x] Push the Northstar-only local access fix and document exact Windows restart steps.
+
+- [x] Implement the approved Northstar-only localhost operator fix now, with fail-closed production behavior and analytics placeholder suppression.

@@ -6,9 +6,22 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
+import { shouldLoadAnalytics } from "./lib/analytics";
 import "./index.css";
 
 const queryClient = new QueryClient();
+
+const analyticsEndpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT as string | undefined;
+const analyticsWebsiteId = import.meta.env.VITE_ANALYTICS_WEBSITE_ID as string | undefined;
+if (
+  shouldLoadAnalytics(analyticsEndpoint, analyticsWebsiteId)
+) {
+  const analyticsScript = document.createElement("script");
+  analyticsScript.defer = true;
+  analyticsScript.src = `${analyticsEndpoint.replace(/\/$/, "")}/umami`;
+  analyticsScript.dataset.websiteId = analyticsWebsiteId;
+  document.head.appendChild(analyticsScript);
+}
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
