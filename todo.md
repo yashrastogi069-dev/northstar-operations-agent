@@ -69,3 +69,8 @@
 - [x] Replace managed-only login, model, storage, and notification assumptions with explicit external adapters or safe unsupported states.
 - [x] Add non-Manus configuration tests; the complete provider acquisition guide with official references is done.
 - [x] Run dedicated external-adapter authorization tests and push the portability milestone; core type, behavior, build, local-start, and hygiene checks currently pass.
+
+- [x] Document a Cloudflare Access protected route for Northstar with a simple email login policy and no public anonymous access.
+- [x] Document a private Cloudflare R2 bucket, scoped API token, S3 endpoint, and Northstar storage variables.
+- [x] Explain Cloudflare free-plan limits, ownership, DNS/domain prerequisites, and Railway integration in beginner-safe steps.
+- [x] Validate the Cloudflare deployment instructions against official documentation and synchronize the public-safe guide.
