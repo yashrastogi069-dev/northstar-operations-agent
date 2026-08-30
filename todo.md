@@ -74,3 +74,8 @@
 - [x] Document a private Cloudflare R2 bucket, scoped API token, S3 endpoint, and Northstar storage variables.
 - [x] Explain Cloudflare free-plan limits, ownership, DNS/domain prerequisites, and Railway integration in beginner-safe steps.
 - [x] Validate the Cloudflare deployment instructions against official documentation and synchronize the public-safe guide.
+
+- [x] Evaluate a local MySQL-compatible database path for Northstar on Windows with no hosted database dependency.
+- [x] Evaluate a free self-hosted authentication path that can run locally without paid identity-provider quotas.
+- [x] Define local backup, password-reset, email, data-retention, and security boundaries so “free forever” is not confused with unlimited capacity or zero maintenance.
+- [x] Decide whether to implement local-only authentication mode separately from production OIDC/Cloudflare Access.
