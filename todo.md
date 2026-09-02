@@ -92,3 +92,7 @@
 - [x] Improve Evidence Desk and Sources UX with a coherent upload/search/approval workflow, supported-format guidance, validation feedback, and readable source/document states.
 - [x] Improve shared typography, contrast, spacing, panels, focus states, and responsive behavior across the Northstar application.
 - [ ] Visually verify the redesigned UI at desktop and mobile widths, then rerun tests, type check, and production build before synchronizing the release.
+
+- [ ] Diagnose the opaque failed Agent Desk run from the actual server error path and preserve safe read-only recovery behavior.
+- [ ] Make missing optional `EMBEDDING_MODEL` and `OIDC_LOGOUT_URL` configuration explicit and backward-compatible, with clear runtime diagnostics.
+- [ ] Add regression coverage, rerun tests/type/build checks, document exact Render environment updates, and push the troubleshooting fix.

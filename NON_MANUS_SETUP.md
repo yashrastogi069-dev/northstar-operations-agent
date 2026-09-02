@@ -2,7 +2,7 @@
 
 This guide configures Northstar with external services instead of Manus-managed authentication, model inference, object storage, and notifications. The documented external stack is Render for the application, TiDB Cloud for the database, Auth0 for standards-based OIDC login, OpenRouter for OpenAI-compatible model and embedding inference, and Cloudflare R2 for private S3-compatible object storage. Northstar combines persisted embedding similarity with a governed keyword fallback.
 
-> Do not put secrets in GitHub, `.env.example`, screenshots, browser messages, or support tickets. Use `.env` locally and Railway’s sealed variables in production.
+> Do not put secrets in GitHub, `.env.example`, screenshots, browser messages, or support tickets. Use `.env` locally and Render’s sealed environment variables in production. `.env.example` documents names only; it never changes an already-deployed Render service.
 
 ## 1. Update the source first
 
@@ -69,13 +69,15 @@ In Auth0:
 
 Auth0 requires callback URLs to be explicitly allow-listed. Do not use a wildcard callback URL. [2]
 
-For local `.env`, enter:
+For local `.env`, enter these values. For Render, enter the same names in the service’s Environment settings; do not expect `.env.example` to populate them automatically:
 
 ```env
 AUTH_PROVIDER=oidc
 OIDC_ISSUER_URL=https://YOUR_TENANT.us.auth0.com
 OIDC_CLIENT_ID=YOUR_AUTH0_CLIENT_ID
 OIDC_CLIENT_SECRET=YOUR_AUTH0_CLIENT_SECRET
+# Leave blank for Auth0; set this only for a provider with a custom end-session endpoint.
+OIDC_LOGOUT_URL=
 OIDC_SCOPE=openid profile email
 VITE_AUTH_PROVIDER=oidc
 VITE_OIDC_ISSUER_URL=https://YOUR_TENANT.us.auth0.com
@@ -101,7 +103,7 @@ EMBEDDING_MODEL=openai/text-embedding-3-small
 
 The server sends chat requests to `/v1/chat/completions` and embedding requests to `/v1/embeddings`. `LLM_MODEL` and `EMBEDDING_MODEL` must be model identifiers available through the selected provider. Do not expose `OPENAI_API_KEY` to the browser and do not use it in a variable with a `VITE_` prefix.
 
-The model service is metered separately from hosting. Set an account budget and monitor usage before inviting other users.
+Add `EMBEDDING_MODEL=openai/text-embedding-3-small` to Render explicitly. Without it, the code default is used, but an explicit value makes the deployment contract visible and prevents confusion when changing providers. The model service is metered separately from hosting. Set an account budget and monitor usage before inviting other users.
 
 ## 6. Create private object storage
 

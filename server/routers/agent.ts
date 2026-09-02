@@ -43,6 +43,15 @@ function sanitiseSummary(value: string, max = 1_000) {
   return value.replace(/(?:api[_ -]?key|token|password|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[redacted]").slice(0, max);
 }
 
+export function userSafeFailureReason(value: string): string {
+  const message = value.toLowerCase();
+  if (message.includes("database") || message.includes("connect") || message.includes("econnrefused")) return "The Northstar database could not be reached. Check the Render DATABASE_URL, TLS settings, and database availability.";
+  if (message.includes("openai") || message.includes("openrouter") || message.includes("api key") || message.includes("401") || message.includes("403")) return "The configured model provider rejected or could not complete the request. Check the OpenRouter endpoint, key, and model settings.";
+  if (message.includes("embedding")) return "Semantic retrieval was unavailable. The run should use keyword fallback; review the run trace for the provider detail.";
+  if (message.includes("timeout") || message.includes("fetch failed") || message.includes("network")) return "An external provider timed out or could not be reached. Retry the read-only run after checking provider health.";
+  return "An unexpected server error occurred. Review the run trace or server logs for the detailed cause.";
+}
+
 async function executeAgentRun(ctx: AgentCallerContext, input: z.infer<typeof runInput>, recoveryOfRunId?: number) {
   const decision = classifyRequest(input.request, Boolean(input.dataText?.trim()));
   const threadId = `northstar_${nanoid(20)}`;
@@ -71,10 +80,17 @@ async function executeAgentRun(ctx: AgentCallerContext, input: z.infer<typeof ru
     return { runId, threadId, status: state.status, riskTier: state.riskTier, policyReason: state.policyReason, plan: state.plan, requiresPublicResearchConsent: Boolean(state.plan?.requiresPublicResearchConsent), result: state.result, tools: state.toolResults, approvalId, artifactId };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unexpected agent execution failure.";
-    await updateAgentRun({ runId, status: "failed", errorMessage, complete: true });
-    await addAgentStateSnapshot({ runId, node: "failed", sequence: 1, statePayload: { errorMessage } });
-    await addAuditEvent({ actorUserId: ctx.user.id, eventType: "agent.run_failed", entityType: "agent_run", entityId: runId, severity: "high", details: { errorMessage, recoveryOfRunId } });
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Northstar could not complete this run. The failed run is available for review and eligible read-only recovery." });
+    const safeError = sanitiseSummary(errorMessage, 1_200);
+    console.error(`[AgentRun ${runId}] execution failed`, safeError);
+    try {
+      await updateAgentRun({ runId, status: "failed", errorMessage: safeError, complete: true });
+      await addAgentStateSnapshot({ runId, node: "failed", sequence: 1, statePayload: { errorMessage: safeError } });
+      await addAuditEvent({ actorUserId: ctx.user.id, eventType: "agent.run_failed", entityType: "agent_run", entityId: runId, severity: "high", details: { errorMessage: safeError, recoveryOfRunId } });
+    } catch (persistenceError) {
+      const persistenceMessage = persistenceError instanceof Error ? persistenceError.message : "Unknown persistence failure.";
+      console.error(`[AgentRun ${runId}] failed-run persistence also failed`, sanitiseSummary(persistenceMessage, 800));
+    }
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Northstar could not complete run ${runId}. ${userSafeFailureReason(errorMessage)} The failed run remains eligible for read-only recovery.` });
   }
 }
 
