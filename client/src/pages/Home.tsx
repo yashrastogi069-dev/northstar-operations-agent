@@ -38,6 +38,7 @@ export default function Home() {
   const feedback = trpc.agent.feedback.create.useMutation({
     onSuccess: (_data, variables) => setFeedbackSent(variables.rating),
   });
+  const runTask = (allowPublicResearch = false) => run.mutate({ request, allowPublicResearch, ...(dataText.trim() ? { dataText } : {}) });
 
   const workflowStarters = workflowTemplates.data?.map(template => ({
     icon: template.id === "research_brief" ? Search : template.id === "document_analysis" ? BrainCircuit : template.id === "operational_triage" ? Table2 : FileCheck2,
@@ -90,7 +91,7 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            <Button onClick={() => run.mutate({ request, ...(dataText.trim() ? { dataText } : {}) })} disabled={!request.trim() || run.isPending} className="northstar-primary rounded-xl px-5 font-bold">
+            <Button onClick={() => runTask()} disabled={!request.trim() || run.isPending} className="northstar-primary rounded-xl px-5 font-bold">
               {run.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}Run supervised task
             </Button>
           </div>
@@ -116,10 +117,12 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="northstar-kicker">Run result</p>
+              <p className="mt-2 max-w-3xl rounded-xl border border-[#304b57] bg-[#111f29] px-3 py-2 text-sm text-cyan-50"><span className="font-semibold text-cyan-200">Question:</span> {request}</p>
               <h2 className="mt-2 font-serif text-3xl text-white">{result.status === "blocked" ? "Run stopped safely" : result.status === "awaiting_approval" ? "Human review required" : "Evidence-led result"}</h2>
             </div>
             <Badge className={result.status === "blocked" ? "border border-red-300/30 bg-red-400/15 text-red-100" : result.status === "awaiting_approval" ? "border border-amber-300/35 bg-amber-300/15 text-amber-100" : "border border-emerald-300/35 bg-emerald-300/15 text-emerald-100"}>{String(result.status).replaceAll("_", " ")}</Badge>
           </div>
+          {result.requiresPublicResearchConsent ? <div className="mt-5 rounded-xl border border-amber-300/40 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50"><strong>Public research was not run.</strong> This request appears to ask for a public fact, but Northstar never searches the web silently. Confirm only if the request contains no confidential firm information, then Northstar will run the bounded public-reference search.<br /><Button onClick={() => runTask(true)} disabled={run.isPending} size="sm" className="mt-3 bg-amber-200 font-bold text-[#18262a] hover:bg-amber-100">{run.isPending ? "Searching…" : "Confirm public research"}</Button></div> : null}
           <p className="mt-5 whitespace-pre-wrap text-sm leading-7 text-slate-100">{result.result}</p>
           <div className="northstar-result mt-5 p-4 text-sm"><strong>Policy decision: </strong>{result.policyReason}</div>
           <div className="mt-5 grid gap-3 md:grid-cols-2">

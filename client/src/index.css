@@ -83,16 +83,22 @@
 }
 
 @layer components {
-  .northstar-workspace { color: #eaf2f5; }
+  .northstar-workspace { color: #eaf2f5; line-height: 1.55; }
+  .northstar-workspace > div { max-width: 1480px; margin-inline: auto; }
   .northstar-workspace > div { position: relative; }
   .northstar-workspace h1, .northstar-workspace h2, .northstar-workspace h3, .northstar-workspace strong { color: #f7fbfc; }
   .northstar-workspace p { color: #b8c8d0; }
   .northstar-workspace input, .northstar-workspace textarea, .northstar-workspace select { border-color: #38515e; background: #101d27; color: #f3f8fa; }
   .northstar-workspace input::placeholder, .northstar-workspace textarea::placeholder { color: #8fa3af; }
-  .northstar-workspace input:focus, .northstar-workspace textarea:focus, .northstar-workspace select:focus { border-color: #f3c653; box-shadow: 0 0 0 3px rgba(243,198,83,.16); }
+  .northstar-workspace input:focus, .northstar-workspace textarea:focus, .northstar-workspace select:focus, .northstar-workspace button:focus-visible, .northstar-workspace a:focus-visible { border-color: #f3c653; box-shadow: 0 0 0 3px rgba(243,198,83,.24); outline: none; }
   .northstar-workspace section:not(.northstar-hero), .northstar-workspace aside { border-color: #304854; background: #14222d; box-shadow: 0 20px 48px -36px rgba(0,0,0,.9); }
   .northstar-workspace details, .northstar-workspace pre { border: 1px solid #304854; background: #101c25; color: #d8e6eb; }
-  .northstar-workspace details summary { color: #dce9ee; }
+  .northstar-workspace details summary { color: #dce9ee; font-weight: 700; }
+  .northstar-workspace table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid #304854; border-radius: 1rem; }
+  .northstar-workspace th { background: #102832; color: #bfe8ea; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+  .northstar-workspace th, .northstar-workspace td { border-bottom: 1px solid #263f4a; padding: .75rem 1rem; text-align: left; vertical-align: top; }
+  .northstar-workspace tr:last-child td { border-bottom: 0; }
+  .northstar-workspace td { color: #e3edf0; }
   .northstar-workspace [class*="bg-white"], .northstar-workspace [class*="bg-\[\#f"], .northstar-workspace [class*="bg-\[\#e"] { background-color: #182934 !important; }
   .northstar-workspace [class*="border-\[\#d"], .northstar-workspace [class*="border-\[\#e"] { border-color: #38515e !important; }
   .northstar-workspace [class*="text-\[\#"] { color: #d5e2e7; }
@@ -114,6 +120,8 @@
   .northstar-meta { color: #9fb3be !important; }
   .northstar-result { border: 1px solid #38535f; border-radius: 1rem; background: rgba(8,20,27,.5); }
   .northstar-feedback { border: 1px solid #36515e; border-radius: 1rem; background: rgba(8,20,27,.45); }
+  .northstar-section-label { color: #8ce5e9; font-size: .64rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .northstar-prose { max-width: 72ch; color: #d8e5e9; line-height: 1.75; }
   .northstar-workspace .evidence-panel, .northstar-workspace .evidence-register, .northstar-workspace .connection-card, .northstar-workspace .metric-card { border-color: #304854; background: #14222d; box-shadow: 0 20px 48px -36px rgba(0,0,0,.9); }
   .northstar-workspace .page-heading h1, .northstar-workspace .section-ledger-heading h2, .northstar-workspace .panel-title h2, .northstar-workspace .register-heading h2 { color: #f7fbfc; }
   .northstar-workspace .page-heading > div > p:last-child, .northstar-workspace .section-ledger-heading > p, .northstar-workspace .panel-intro, .northstar-workspace .register-row p + p, .northstar-workspace .register-row small, .northstar-workspace .workflow-record small, .northstar-workspace .audit-record small { color: #aebfc8; }
@@ -135,4 +143,7 @@
 @media (max-width: 767px) {
   .northstar-workspace { padding: 1rem; }
   .northstar-workspace .northstar-hero { border-radius: 1.35rem; }
+  .northstar-workspace h1 { font-size: 2rem; }
+  .northstar-workspace h2 { font-size: 1.55rem; }
+  .northstar-workspace table { display: block; overflow-x: auto; white-space: nowrap; }
 }

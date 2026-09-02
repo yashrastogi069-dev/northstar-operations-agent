@@ -15,7 +15,7 @@ describe("Northstar agent policy", () => {
 
   it("chooses only registered tools and creates a draft-only plan", () => {
     const decision = classifyRequest("Research the market and prepare a proposal.");
-    const plan = createDeterministicPlan("Research the market and prepare a proposal.", decision);
+    const plan = createDeterministicPlan("Research the market and prepare a proposal.", decision, false, true);
     expect(plan.tools).toEqual(["public_research", "create_internal_draft"]);
     expect(plan.needsApproval).toBe(false);
   });

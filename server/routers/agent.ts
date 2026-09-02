@@ -33,6 +33,7 @@ import { classifyRequest, WORKFLOW_TEMPLATES } from "../lib/agentPolicy";
 const runInput = z.object({
   request: z.string().trim().min(3).max(4_000),
   dataText: z.string().max(200_000).optional(),
+  allowPublicResearch: z.boolean().default(false),
   title: z.string().trim().min(3).max(220).optional(),
 });
 
@@ -50,7 +51,7 @@ async function executeAgentRun(ctx: AgentCallerContext, input: z.infer<typeof ru
   try {
     const memories = await listAgentMemories(ctx.user.id, ctx.user.role);
     const memoryHints = memories.slice(0, 8).map(memory => `${memory.key}: ${memory.content}`).filter(value => value.length <= 1_200);
-    const state = await runNorthstarGraph({ request: input.request, dataText: input.dataText, memoryHints, role: ctx.user.role, userId: ctx.user.id, runId });
+    const state = await runNorthstarGraph({ request: input.request, dataText: input.dataText, allowPublicResearch: input.allowPublicResearch, memoryHints, role: ctx.user.role, userId: ctx.user.id, runId });
     await updateAgentRun({ runId, status: state.status, plan: state.plan, result: state.result, retryCount: state.retryCount, complete: state.status !== "awaiting_approval" });
     for (let sequence = 0; sequence < state.trace.length; sequence += 1) {
       const event = state.trace[sequence];
@@ -67,7 +68,7 @@ async function executeAgentRun(ctx: AgentCallerContext, input: z.infer<typeof ru
       approvalId = await createAgentApproval({ runId, toolCallId: toolCallIds.at(-1), actionSummary: state.approvalSummary ?? "Review the proposed future action. No external effect will occur in Northstar.", proposedPayload: { request: input.request, result: state.result, plan: state.plan }, requestedByUserId: ctx.user.id });
     }
     await addAuditEvent({ actorUserId: ctx.user.id, eventType: `agent.run_${state.status}`, entityType: "agent_run", entityId: runId, severity: state.status === "blocked" || state.status === "failed" ? "warning" : "info", details: { threadId, toolNames: state.toolResults.map(tool => tool.toolName), artifactId, approvalId, retryCount: state.retryCount, recoveryOfRunId } });
-    return { runId, threadId, status: state.status, riskTier: state.riskTier, policyReason: state.policyReason, plan: state.plan, result: state.result, tools: state.toolResults, approvalId, artifactId };
+    return { runId, threadId, status: state.status, riskTier: state.riskTier, policyReason: state.policyReason, plan: state.plan, requiresPublicResearchConsent: Boolean(state.plan?.requiresPublicResearchConsent), result: state.result, tools: state.toolResults, approvalId, artifactId };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unexpected agent execution failure.";
     await updateAgentRun({ runId, status: "failed", errorMessage, complete: true });
@@ -106,7 +107,7 @@ export const agentRouter = router({
       if (failedRun.status !== "failed") throw new TRPCError({ code: "BAD_REQUEST", message: "Only a failed run can be recovered." });
       if (failedRun.taskType === "analysis") throw new TRPCError({ code: "BAD_REQUEST", message: "For privacy, tabular inputs are not retained for automatic replay. Submit the task with the data again." });
       if (await getAgentRecoveryForUser(failedRun.id, ctx.user.id, ctx.user.role)) throw new TRPCError({ code: "CONFLICT", message: "A recovery attempt already exists for this failed run." });
-      return executeAgentRun(ctx, { request: failedRun.request, title: `Recovery — ${failedRun.title}` }, failedRun.id);
+      return executeAgentRun(ctx, { request: failedRun.request, title: `Recovery — ${failedRun.title}`, allowPublicResearch: false }, failedRun.id);
     }),
   }),
   approvals: router({

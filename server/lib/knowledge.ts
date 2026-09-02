@@ -2,6 +2,8 @@ import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import * as XLSX from "xlsx";
 import { invokeLLM } from "../_core/llm";
+import { ENV } from "../_core/env";
+import { cosineSimilarity, isValidEmbedding, normalizedSemanticScore, parseEmbedding, type Embedding } from "./semanticSearch";
 
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how", "in", "is", "it", "of", "on", "or", "that", "the", "this", "to", "was", "what", "when", "where", "which", "who", "with", "will", "would", "you", "your",
@@ -16,6 +18,7 @@ export type RetrievalCandidate = {
   content: string;
   keywordTerms: string;
   semanticTerms: string;
+  embedding?: Embedding | string | null;
   ordinal: number;
 };
 
@@ -64,12 +67,12 @@ function phraseBonus(question: string, content: string): number {
   return phrases.some(phrase => normalizedContent.includes(phrase)) ? 0.15 : 0;
 }
 
-export function rankEvidence(question: string, candidates: RetrievalCandidate[], limit = 6): RankedEvidence[] {
+function rankKeywordEvidence(question: string, candidates: RetrievalCandidate[], limit = 6): RankedEvidence[] {
   const queryTerms = tokenize(question);
   return candidates
     .map(candidate => {
       const keywordScore = overlapScore(queryTerms, `${candidate.keywordTerms} ${candidate.content}`);
-      // semanticTerms contains normalised concepts and title aliases generated at ingestion time.
+      // Legacy lexical semanticTerms remain a fallback for rows without embeddings.
       const semanticScore = overlapScore(queryTerms, `${candidate.semanticTerms} ${candidate.documentTitle} ${candidate.sourceName}`);
       const rerankScore = Math.min(1, keywordScore * 0.62 + semanticScore * 0.38 + phraseBonus(question, candidate.content));
       return {
@@ -83,6 +86,47 @@ export function rankEvidence(question: string, candidates: RetrievalCandidate[],
     .filter(result => result.rerankScore > 0)
     .sort((left, right) => right.rerankScore - left.rerankScore)
     .slice(0, limit);
+}
+
+export const rankEvidence = rankKeywordEvidence;
+
+export async function rankEvidenceHybrid(question: string, candidates: RetrievalCandidate[], limit = 6): Promise<RankedEvidence[]> {
+  const queryEmbedding = (await embedTexts([question]))[0] ?? null;
+  if (!queryEmbedding) return rankKeywordEvidence(question, candidates, limit);
+  const queryTerms = tokenize(question);
+  return candidates
+    .map(candidate => {
+      const keywordScore = overlapScore(queryTerms, `${candidate.keywordTerms} ${candidate.content}`);
+      const candidateEmbedding = parseEmbedding(candidate.embedding);
+      const semanticScore = candidateEmbedding ? normalizedSemanticScore(cosineSimilarity(queryEmbedding, candidateEmbedding)) : overlapScore(queryTerms, `${candidate.semanticTerms} ${candidate.documentTitle} ${candidate.sourceName}`);
+      const rerankScore = Math.min(1, keywordScore * 0.45 + semanticScore * 0.55 + phraseBonus(question, candidate.content));
+      return { ...candidate, keywordScore, semanticScore, rerankScore, snippet: excerpt(candidate.content, queryTerms) };
+    })
+    .filter(result => result.rerankScore > 0.18)
+    .sort((left, right) => right.rerankScore - left.rerankScore)
+    .slice(0, limit);
+}
+
+export async function embedTexts(inputs: string[]): Promise<Embedding[]> {
+  const cleanInputs = inputs.map(value => value.replace(/\u0000/g, "").trim()).filter(Boolean);
+  if (!cleanInputs.length || !ENV.llmApiKey || !ENV.llmBaseUrl) return [];
+  const base = ENV.llmBaseUrl.replace(/\/$/, "");
+  const url = `${base}${base.endsWith("/v1") ? "" : "/v1"}/embeddings`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${ENV.llmApiKey}` },
+      body: JSON.stringify({ model: ENV.embeddingModel, input: cleanInputs }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!response.ok) throw new Error(`Embedding provider returned ${response.status}`);
+    const payload = await response.json() as { data?: Array<{ index?: number; embedding?: unknown }> };
+    const values = (payload.data ?? []).slice().sort((left, right) => (left.index ?? 0) - (right.index ?? 0)).map(item => item.embedding).filter(isValidEmbedding);
+    return values.length === cleanInputs.length ? values : [];
+  } catch (error) {
+    console.warn("[Retrieval] Embeddings unavailable; using keyword fallback:", error instanceof Error ? error.message : "unknown error");
+    return [];
+  }
 }
 
 function excerpt(content: string, queryTerms: string[]): string {

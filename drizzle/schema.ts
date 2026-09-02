@@ -68,6 +68,8 @@ export const knowledgeChunks = mysqlTable("knowledgeChunks", {
   content: mediumtext("content").notNull(),
   keywordTerms: text("keywordTerms").notNull(),
   semanticTerms: text("semanticTerms").notNull(),
+  /** JSON-encoded embedding vector; null keeps legacy documents keyword-searchable. */
+  embedding: json("embedding"),
   tokenEstimate: int("tokenEstimate").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

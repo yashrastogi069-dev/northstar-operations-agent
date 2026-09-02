@@ -43,6 +43,13 @@
       "when": 1787860435971,
       "tag": "0005_great_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1788348012896,
+      "tag": "0006_chief_meteorite",
+      "breakpoints": true
     }
   ]
 }

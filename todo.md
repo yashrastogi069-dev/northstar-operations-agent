@@ -86,3 +86,9 @@
 - [x] Push the Northstar-only local access fix and document exact Windows restart steps.
 
 - [x] Implement the approved Northstar-only localhost operator fix now, with fail-closed production behavior and analytics placeholder suppression.
+
+- [x] Redesign Northstar navigation and information hierarchy so Agent Desk, Evidence Desk, Sources, Runs, and Admin workflows have clear locations and labels.
+- [x] Improve Agent Desk readability and interaction flow with question/result pairing, clear status states, citations, consent prompts, and usable responsive spacing.
+- [x] Improve Evidence Desk and Sources UX with a coherent upload/search/approval workflow, supported-format guidance, validation feedback, and readable source/document states.
+- [x] Improve shared typography, contrast, spacing, panels, focus states, and responsive behavior across the Northstar application.
+- [ ] Visually verify the redesigned UI at desktop and mobile widths, then rerun tests, type check, and production build before synchronizing the release.

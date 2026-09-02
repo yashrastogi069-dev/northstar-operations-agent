@@ -1,6 +1,6 @@
 import { getAuthorizedCandidates } from "../db";
 import { DynamicStructuredTool } from "@langchain/core/tools";
-import { rankEvidence, shouldDecline } from "./knowledge";
+import { rankEvidenceHybrid, shouldDecline } from "./knowledge";
 import type { AgentToolName } from "./agentPolicy";
 import { z } from "zod";
 
@@ -37,7 +37,7 @@ async function researchWikipedia(query: string): Promise<AgentToolResult> {
 
 async function searchFirmKnowledge(query: string, role: "admin" | "user"): Promise<AgentToolResult> {
   const started = Date.now();
-  const evidence = rankEvidence(query, await getAuthorizedCandidates(role), 5);
+  const evidence = await rankEvidenceHybrid(query, await getAuthorizedCandidates(role), 5);
   if (shouldDecline(evidence)) return { toolName: "knowledge_search", status: "succeeded", summary: "No sufficient approved firm evidence was found for this request.", citations: [], durationMs: Date.now() - started };
   return { toolName: "knowledge_search", status: "succeeded", summary: `Retrieved ${evidence.length} approved evidence passage${evidence.length === 1 ? "" : "s"}.`, citations: evidence.map(item => ({ title: item.documentTitle, source: item.sourceName, excerpt: item.snippet })), durationMs: Date.now() - started };
 }

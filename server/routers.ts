@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { evaluationRouter } from "./routers/evaluation";
 import { agentRouter } from "./routers/agent";
 import { knowledgeRouter } from "./routers/knowledge";
+import { buildOidcLogoutUrl } from "./_core/oauth";
 
 export const appRouter = router({
   system: systemRouter,
@@ -13,7 +14,7 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
+      return { success: true, logoutUrl: buildOidcLogoutUrl(ctx.req) } as const;
     }),
   }),
   knowledge: knowledgeRouter,

@@ -8,6 +8,7 @@ type TraceEvent = { node: string; at: string; detail: string };
 const AgentState = Annotation.Root({
   request: Annotation<string>,
   dataText: Annotation<string | undefined>,
+  allowPublicResearch: Annotation<boolean>({ value: (_left, right) => right, default: () => false }),
   memoryHints: Annotation<string[]>({ value: (_left, right) => right, default: () => [] }),
   role: Annotation<"admin" | "user">,
   userId: Annotation<number>,
@@ -43,7 +44,7 @@ function contextNode(state: NorthstarGraphState) {
 }
 
 async function planNode(state: NorthstarGraphState) {
-  const base = createDeterministicPlan(state.request, { allowed: state.allowed, riskTier: state.riskTier, reason: state.policyReason, taskType: state.taskType }, Boolean(state.dataText?.trim()));
+  const base = createDeterministicPlan(state.request, { allowed: state.allowed, riskTier: state.riskTier, reason: state.policyReason, taskType: state.taskType }, Boolean(state.dataText?.trim()), state.allowPublicResearch);
   try {
     const response = await invokeLLM({
       model: "gpt-5-mini",
@@ -125,6 +126,6 @@ const compiledAgentGraph = new StateGraph(AgentState)
   .addEdge("blocked", END)
   .compile({ name: "northstar-supervised-operations-agent" });
 
-export async function runNorthstarGraph(input: { request: string; dataText?: string; memoryHints?: string[]; role: "admin" | "user"; userId: number; runId: number }) {
+export async function runNorthstarGraph(input: { request: string; dataText?: string; allowPublicResearch?: boolean; memoryHints?: string[]; role: "admin" | "user"; userId: number; runId: number }) {
   return compiledAgentGraph.invoke(input) as Promise<NorthstarGraphState>;
 }

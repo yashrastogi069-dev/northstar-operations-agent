@@ -22,6 +22,18 @@ function safeCallbackForRequest(req: Request, redirectUri: string): boolean {
   }
 }
 
+export function buildOidcLogoutUrl(req: Request, config = { authProvider: ENV.authProvider, issuerUrl: ENV.oidcIssuerUrl, clientId: ENV.oidcClientId, logoutUrl: ENV.oidcLogoutUrl }): string | undefined {
+  if (config.authProvider !== "oidc" || !config.issuerUrl || !config.clientId) return undefined;
+  const origin = `${req.protocol}://${req.get("host")}`;
+  const returnTo = new URL("/", origin).toString();
+  const base = (config.logoutUrl || `${config.issuerUrl.replace(/\/$/, "")}/v2/logout`).replace(/\/$/, "");
+  const url = new URL(base);
+  url.searchParams.set("client_id", config.clientId);
+  if (url.pathname.endsWith("/v2/logout")) url.searchParams.set("returnTo", returnTo);
+  else url.searchParams.set("post_logout_redirect_uri", returnTo);
+  return url.toString();
+}
+
 function oidcEndpoint(path: string): string {
   if (!ENV.oidcIssuerUrl) throw new Error("OIDC_ISSUER_URL is not configured");
   return `${ENV.oidcIssuerUrl.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;

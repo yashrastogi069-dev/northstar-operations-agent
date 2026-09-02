@@ -27,18 +27,44 @@ import { ENV } from "./_core/env";
 import { buildAuditEvent, type AuditEventInput } from "./lib/audit";
 import type { RetrievalCandidate } from "./lib/knowledge";
 import { buildDraftValues, buildWorkflowReview, type DraftReviewStatus } from "./lib/workflow";
+import { isConfiguredAdmin } from "./lib/adminAccess";
+import type { Embedding } from "./lib/semanticSearch";
 import type { AgentPlan, AgentRiskTier, AgentTaskType, AgentToolName } from "./lib/agentPolicy";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let lastDatabaseDiagnostic = "";
+
+function databaseTarget(value: string): string {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}/${url.pathname.replace(/^\//, "").split("?")[0]}`;
+  } catch {
+    return "an unparseable database URL";
+  }
+}
+
+function logDatabaseDiagnostic(message: string, error?: unknown) {
+  const detail = error instanceof Error ? error.message.replace(/mysql:\/\/[^\s]+/gi, "mysql://[redacted]").slice(0, 500) : "";
+  const line = `${message}${detail ? ` Detail: ${detail}` : ""}`;
+  if (line !== lastDatabaseDiagnostic) {
+    console.error(`[Database] ${line}`);
+    lastDatabaseDiagnostic = line;
+  }
+}
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  const url = process.env.DATABASE_URL;
+  if (!_db && url) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(url);
+      await _db.execute(sql`select 1`);
+      lastDatabaseDiagnostic = "";
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
       _db = null;
+      logDatabaseDiagnostic(`Unable to connect to ${databaseTarget(url)}. Verify DATABASE_URL, TiDB network access, TLS settings, and that the database exists.`, error);
     }
+  } else if (!_db && !url) {
+    logDatabaseDiagnostic("DATABASE_URL is not configured. Database-backed features, uploads, and authentication persistence cannot work until it is set.");
   }
   return _db;
 }
@@ -60,7 +86,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.role !== undefined) {
     values.role = user.role;
     updateSet.role = user.role;
-  } else if (user.openId === ENV.ownerOpenId) {
+  } else if (isConfiguredAdmin(user, { ownerOpenId: ENV.ownerOpenId, adminEmails: ENV.adminEmails })) {
     values.role = "admin";
     updateSet.role = "admin";
   }
@@ -173,7 +199,7 @@ export async function updateDocumentProcessing(input: {
     .where(eq(knowledgeDocuments.id, input.documentId));
 }
 
-export async function replaceDocumentChunks(documentId: number, sourceId: number, chunks: Array<{ content: string; keywordTerms: string; semanticTerms: string; tokenEstimate: number }>) {
+export async function replaceDocumentChunks(documentId: number, sourceId: number, chunks: Array<{ content: string; keywordTerms: string; semanticTerms: string; embedding?: number[] | null; tokenEstimate: number }>) {
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");
   await db.delete(knowledgeChunks).where(eq(knowledgeChunks.documentId, documentId));
@@ -208,6 +234,7 @@ export async function getAuthorizedCandidates(role: "admin" | "user"): Promise<R
     content: row.chunk.content,
     keywordTerms: row.chunk.keywordTerms,
     semanticTerms: row.chunk.semanticTerms,
+    embedding: row.chunk.embedding as Embedding | string | null,
     ordinal: row.chunk.ordinal,
   }));
 }

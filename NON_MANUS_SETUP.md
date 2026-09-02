@@ -1,6 +1,6 @@
 # Northstar non-Manus setup
 
-This guide configures Northstar with external services instead of Manus-managed authentication, model inference, object storage, and notifications. The recommended small deployment uses Railway for the application and private MySQL database, Auth0 for standards-based OIDC login, OpenAI for model inference, and Cloudflare R2 for S3-compatible object storage. Qdrant is optional; Northstar keeps its governed hybrid retrieval fallback when vector search is not configured.
+This guide configures Northstar with external services instead of Manus-managed authentication, model inference, object storage, and notifications. The documented external stack is Render for the application, TiDB Cloud for the database, Auth0 for standards-based OIDC login, OpenRouter for OpenAI-compatible model and embedding inference, and Cloudflare R2 for private S3-compatible object storage. Northstar combines persisted embedding similarity with a governed keyword fallback.
 
 > Do not put secrets in GitHub, `.env.example`, screenshots, browser messages, or support tickets. Use `.env` locally and Railway’s sealed variables in production.
 
@@ -14,7 +14,7 @@ git pull origin main
 pnpm install
 ```
 
-The latest source includes an external OIDC callback, an OpenAI-compatible model endpoint, an S3-compatible storage adapter, cross-platform Windows scripts, and an optional HTTPS notification webhook. The old managed variables remain only as a compatibility fallback; they are not needed in external mode.
+The latest source includes an external OIDC callback, an OpenAI-compatible model and embedding endpoint, an S3-compatible storage adapter, cross-platform Windows scripts, explicit public-research consent, and an optional HTTPS notification webhook. The old managed variables remain only as a compatibility fallback; they are not needed in external mode.
 
 ## 2. Create the local environment file
 
@@ -35,13 +35,13 @@ For local-only testing, install MySQL 8 or use Docker Desktop, create a database
 DATABASE_URL=mysql://northstar_user:URL_ENCODED_PASSWORD@127.0.0.1:3306/northstar_local
 ```
 
-For production on Railway, add a MySQL service to the same Railway project. In the Northstar service Variables tab, add this reference variable:
+For production on Render, configure the TiDB Cloud connection string as a sealed environment variable. Do not use the local database or Atlas data in production. The application only needs one database URL; no generated database user ID is required for upload access.
 
 ```env
-DATABASE_URL=${{MySQL.MYSQL_URL}}
+DATABASE_URL=mysql://USER:PASSWORD@GATEWAY_HOST:4000/northstar_production?sslaccept=strict
 ```
 
-Railway exposes `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, and `MYSQL_URL` to connected services. Keep the database private; do not enable public TCP access unless you have a specific administration need. [1]
+Keep TiDB Cloud network access restricted to the Render service where possible, require TLS, and never commit the connection string. If a database connection fails, Northstar logs a redacted host/port/database target and a concrete diagnostic without printing credentials.
 
 Apply the committed schema only after checking that `DATABASE_URL` points to Northstar’s database:
 
@@ -86,19 +86,20 @@ VITE_OIDC_AUDIENCE=
 
 The server-side client secret must not use a `VITE_` prefix. Variables beginning with `VITE_` are bundled into browser code and must never contain private secrets. The duplicate public OIDC issuer/client ID values are intentional; the browser needs the authorization endpoint, while the server needs the client secret for the token exchange.
 
-For production, add the exact production callback URL as another Auth0 allow-listed URL, for example `https://northstar.example.com/api/oauth/callback`, and put the corresponding values into Railway variables. Keep local and production OAuth applications separate where possible.
+For production, add the exact production callback URL as another Auth0 allow-listed URL, for example `https://northstar.example.com/api/oauth/callback`, and the exact root URL to Allowed Logout URLs. Set `ADMIN_EMAILS` to the administrator’s Auth0 email address. When that address logs in, Northstar updates the existing database user to `admin`; no generated database ID needs to be copied into Render. Keep local and production OAuth applications separate where possible.
 
 ## 5. Create model access
 
-Create an API key in the [OpenAI API platform](https://platform.openai.com/api-keys). The key is shown only at creation time. Store it in a password manager and add it only to `.env` locally or to a sealed Railway variable.
+Create an API key in the [OpenRouter Keys page](https://openrouter.ai/keys). Store it in a password manager and add it only to `.env` locally or to a sealed Render environment variable.
 
 ```env
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-LLM_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=YOUR_OPENROUTER_API_KEY
+LLM_MODEL=openai/gpt-4o-mini
+EMBEDDING_MODEL=openai/text-embedding-3-small
 ```
 
-The server sends requests to the OpenAI-compatible `/v1/chat/completions` endpoint and keeps the existing request bounds, retry behavior, tool restrictions, and structured-output handling. `LLM_MODEL` can be changed to a model available in your account. Do not expose `OPENAI_API_KEY` to the browser and do not use it in a variable with a `VITE_` prefix. [3]
+The server sends chat requests to `/v1/chat/completions` and embedding requests to `/v1/embeddings`. `LLM_MODEL` and `EMBEDDING_MODEL` must be model identifiers available through the selected provider. Do not expose `OPENAI_API_KEY` to the browser and do not use it in a variable with a `VITE_` prefix.
 
 The model service is metered separately from hosting. Set an account budget and monitor usage before inviting other users.
 
@@ -128,17 +129,15 @@ Cloudflare documents that R2 uses the S3 API and that object permissions can be 
 
 The Northstar server uploads through the S3 SDK and returns a short-lived signed download URL. Do not make the bucket public. Use a separate bucket or prefix for production, and do not upload real firm documents during initial local testing.
 
-## 7. Optional vector retrieval
+## 7. Semantic retrieval
 
-Leave these blank initially:
+Configure the embedding model next to the OpenRouter chat model:
 
 ```env
-QDRANT_URL=
-QDRANT_API_KEY=
-QDRANT_COLLECTION=northstar-knowledge
+EMBEDDING_MODEL=openai/text-embedding-3-small
 ```
 
-Northstar will use its governed approved-source hybrid fallback. A Qdrant URL and key alone are not enough for semantic search; the collection must contain embeddings generated by an approved embedding provider, and metadata must preserve source approval and role restrictions. Activate this only after deciding where embeddings are generated and where firm text is allowed to leave the firm boundary.
+On upload, Northstar extracts the document, chunks it, requests embeddings in bounded batches, and stores the vectors with the chunk metadata in TiDB. Retrieval compares the question vector with authorized chunk vectors and combines that score with keyword overlap. If the provider is unavailable, ingestion remains usable with a clearly labeled keyword fallback; malformed or legacy vectors never crash retrieval. A separate Qdrant service is not required by this path.
 
 ## 8. Owner identity and session secret
 
@@ -152,11 +151,12 @@ Set:
 
 ```env
 JWT_SECRET=PASTE_THE_GENERATED_RANDOM_VALUE
-OWNER_OPEN_ID=oidc:AUTH0_SUBJECT_AFTER_FIRST_LOGIN
-OWNER_NAME=Northstar Local Admin
+ADMIN_EMAILS=admin@example.com
+OWNER_OPEN_ID=
+OWNER_NAME=Northstar Admin
 ```
 
-The `OWNER_OPEN_ID` is the OIDC subject claim for the intended owner. After the first successful login, inspect the application’s authenticated user record through the protected admin workflow and use the recorded OIDC subject. Do not guess it from an email address. In a fresh local database, promote the intended user to administrator only through a reviewed database operation.
+`ADMIN_EMAILS` is the stable administrator bootstrap. Use the exact email returned by Auth0; multiple addresses may be comma-separated. On successful OIDC login, Northstar promotes that identity to `admin` in the existing `users` record. `OWNER_OPEN_ID` remains optional for legacy owner-specific behavior and is not needed just to enable uploads.
 
 ## 9. Optional notifications
 
@@ -197,7 +197,7 @@ pnpm test
 pnpm dev
 ```
 
-The development server should start on port `3004` unless that port is already busy. Open `http://localhost:3004`. Select sign in, complete Auth0 login, and confirm that the browser returns to `/` rather than showing an OAuth callback error.
+The development server should start on port `3004` unless that port is already busy. Open `http://localhost:3004`. Select sign in, complete Auth0 login, and confirm that the browser returns to `/` rather than showing an OAuth callback error. When testing logout, Northstar clears its own cookie and then redirects through Auth0’s `/v2/logout` endpoint so the Auth0 SSO session is ended too. The legacy Manus path does not use this redirect.
 
 Then verify both workspaces with synthetic data:
 

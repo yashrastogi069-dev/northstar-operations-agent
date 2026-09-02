@@ -8,6 +8,7 @@ export type AgentPlan = {
   tools: AgentToolName[];
   needsApproval: boolean;
   approvalReason?: string;
+  requiresPublicResearchConsent?: boolean;
 };
 
 export type PolicyDecision = {
@@ -19,6 +20,16 @@ export type PolicyDecision = {
 
 const BLOCKED_PATTERNS = /(?:ignore (?:all |previous |the )?instructions|reveal (?:a |the )?(?:secret|api key|password)|bypass (?:security|approval)|run (?:shell|terminal|command)|delete (?:all |the )?(?:data|files)|exfiltrat)/i;
 const REVIEW_PATTERNS = /(?:send|email|post|publish|submit|update|change|create (?:a )?record|transfer|pay|purchase|delete|remove|invite|approve|reject)/i;
+const PUBLIC_RESEARCH_PATTERNS = /\b(?:research|competitor|external|public|internet|web|latest|news|background|benchmark|industry|market)\b/i;
+const INTERNAL_FIRM_PATTERNS = /\b(?:our|we|firm|company|internal|northstar|approved|policy|procedure|document|contract|budget|client|employee|marketing)\b/i;
+
+export function isInternalFirmRequest(request: string): boolean {
+  return INTERNAL_FIRM_PATTERNS.test(request);
+}
+
+export function isExplicitPublicResearchRequest(request: string): boolean {
+  return PUBLIC_RESEARCH_PATTERNS.test(request) && !isInternalFirmRequest(request);
+}
 
 export const TOOL_CATALOG: Record<AgentToolName, { label: string; tier: 1 | 2; description: string; access: "read_only" | "draft_only" }> = {
   knowledge_search: { label: "Firm knowledge", tier: 1, access: "read_only", description: "Searches only approved firm sources available to the requesting role." },
@@ -41,8 +52,9 @@ export function classifyRequest(request: string, hasData = false): PolicyDecisio
     return { allowed: false, riskTier: "blocked", reason: "The request conflicts with the agent’s security, approval, or data-protection boundaries.", taskType: "mixed" };
   }
   const lower = normalized.toLowerCase();
+  const publicResearch = isExplicitPublicResearchRequest(normalized);
   const taskType: AgentTaskType = hasData ? "analysis"
-    : /(research|market|competitor|external|public|latest|news)/.test(lower) ? "research"
+    : publicResearch ? "research"
     : /(draft|write|prepare|summarize|brief|proposal)/.test(lower) ? "draft"
     : /(policy|procedure|firm|internal|knowledge|document|contract)/.test(lower) ? "knowledge"
     : "mixed";
@@ -52,11 +64,12 @@ export function classifyRequest(request: string, hasData = false): PolicyDecisio
   return { allowed: true, riskTier: "low", reason: "The request is within the agent’s read-only or draft-only operating boundary.", taskType };
 }
 
-export function createDeterministicPlan(request: string, decision: PolicyDecision, hasData = false): AgentPlan {
+export function createDeterministicPlan(request: string, decision: PolicyDecision, hasData = false, allowPublicResearch = false): AgentPlan {
   const lower = request.toLowerCase();
   const tools: AgentToolName[] = [];
   if (/(policy|procedure|firm|internal|knowledge|document|contract|our )/.test(lower)) tools.push("knowledge_search");
-  if (/(research|market|competitor|external|public|latest|news|background)/.test(lower)) tools.push("public_research");
+  const explicitPublicResearch = isExplicitPublicResearchRequest(request);
+  if (explicitPublicResearch && allowPublicResearch) tools.push("public_research");
   if (hasData) tools.push("structured_analysis");
   if (/(draft|write|prepare|summarize|brief|proposal|email|send|publish|update)/.test(lower)) tools.push("create_internal_draft");
   if (!tools.length) tools.push("knowledge_search");
@@ -66,6 +79,7 @@ export function createDeterministicPlan(request: string, decision: PolicyDecisio
     tools: Array.from(new Set(tools)).slice(0, 4),
     needsApproval: decision.riskTier === "review",
     approvalReason: decision.riskTier === "review" ? "A requested future action could affect an external system or company record. Northstar will only prepare a reviewable internal draft." : undefined,
+    requiresPublicResearchConsent: explicitPublicResearch && !allowPublicResearch,
   };
 }
 

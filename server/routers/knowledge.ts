@@ -28,7 +28,7 @@ import {
 import { notifyOwner } from "../_core/notification";
 import { buildDraftReadyAlert, buildIngestionFailedAlert, buildSeriousFeedbackAlert } from "../lib/notifications";
 import { storagePut } from "../storage";
-import { buildSemanticTerms, chunkText, expandRetrievalQuery, extractTextFromUpload, generateEvidenceAnswer, isSupportedUpload, rankEvidence, shouldDecline, tokenize } from "../lib/knowledge";
+import { buildSemanticTerms, chunkText, embedTexts, expandRetrievalQuery, extractTextFromUpload, generateEvidenceAnswer, isSupportedUpload, rankEvidenceHybrid, shouldDecline, tokenize } from "../lib/knowledge";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
@@ -100,13 +100,21 @@ export const knowledgeRouter = router({
         const text = await extractTextFromUpload(buffer, input.mimeType, input.filename);
         const chunks = chunkText(text);
         if (!chunks.length) throw new Error("No extractable text was found in this document.");
-        await replaceDocumentChunks(documentId, source.id, chunks.map(content => ({
+        const embeddingValues: number[][] = [];
+        for (let offset = 0; offset < chunks.length; offset += 64) {
+          const batch = await embedTexts(chunks.slice(offset, offset + 64));
+          if (!batch.length) break;
+          embeddingValues.push(...batch);
+        }
+        const embeddingsReady = embeddingValues.length === chunks.length;
+        await replaceDocumentChunks(documentId, source.id, chunks.map((content, index) => ({
           content,
           keywordTerms: tokenize(content).join(" "),
           semanticTerms: buildSemanticTerms(input.title, content),
+          embedding: embeddingsReady ? embeddingValues[index] : null,
           tokenEstimate: Math.ceil(content.length / 4),
         })));
-        await updateDocumentProcessing({ documentId, status: "ready", extractionSummary: `${chunks.length} searchable passages prepared from ${text.length.toLocaleString()} characters.`, errorMessage: null });
+        await updateDocumentProcessing({ documentId, status: "ready", extractionSummary: `${chunks.length} searchable passages prepared from ${text.length.toLocaleString()} characters${embeddingsReady ? " with semantic embeddings" : " with keyword fallback"}.`, errorMessage: null });
         await addAuditEvent({ actorUserId: ctx.user.id, eventType: "document.ingested", entityType: "knowledge_document", entityId: documentId, details: { sourceId: source.id, chunkCount: chunks.length, sourceApproval: source.approvalStatus } });
         return { documentId, status: "ready" as const, chunkCount: chunks.length };
       } catch (error) {
@@ -143,14 +151,14 @@ export const knowledgeRouter = router({
     }
     await createChatMessage({ conversationId, role: "user", content: input.question });
     const retrievalQuery = await expandRetrievalQuery(input.question);
-    const evidence = rankEvidence(retrievalQuery, await getAuthorizedCandidates(ctx.user.role));
+    const evidence = await rankEvidenceHybrid(retrievalQuery, await getAuthorizedCandidates(ctx.user.role));
     const insufficient = shouldDecline(evidence);
     const answer = insufficient
       ? "I don’t have sufficient approved evidence to answer that. Add or approve a source that directly addresses this question, then try again."
       : await generateEvidenceAnswer(input.question, evidence, input.mode);
     const status = insufficient || answer.startsWith("I don’t have sufficient approved evidence") ? "insufficient_evidence" : "answered";
     const citationPayload = evidence.map((item, index) => ({ number: index + 1, documentId: item.documentId, documentTitle: item.documentTitle, sourceId: item.sourceId, sourceName: item.sourceName, excerpt: item.snippet, confidence: Math.round(item.rerankScore * 100) }));
-    const messageId = await createChatMessage({ conversationId, role: "assistant", content: answer, status, citationPayload, retrievalPayload: { candidateCount: evidence.length, retrievalMode: "keyword + semantic query expansion + rerank", mode: input.mode } });
+    const messageId = await createChatMessage({ conversationId, role: "assistant", content: answer, status, citationPayload, retrievalPayload: { candidateCount: evidence.length, retrievalMode: "embedding semantic similarity + keyword fallback + query expansion + rerank", mode: input.mode } });
     await addAuditEvent({ actorUserId: ctx.user.id, eventType: "chat.answered", entityType: "chat_message", entityId: messageId, severity: insufficient ? "warning" : "info", details: { conversationId, status, agentMode: input.mode, retrievedDocumentIds: evidence.map(item => item.documentId), retrievedSourceIds: evidence.map(item => item.sourceId) } });
     return { conversationId, messageId, answer, status, mode: input.mode, citations: citationPayload };
   }),
