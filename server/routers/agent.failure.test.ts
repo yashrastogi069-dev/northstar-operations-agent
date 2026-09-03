@@ -2,15 +2,22 @@ import { describe, expect, it } from "vitest";
 import { userSafeFailureReason } from "./agent";
 
 describe("Agent Desk failure diagnostics", () => {
-  it("categorizes database failures with an actionable Render hint", () => {
-    const message = userSafeFailureReason("connect ECONNREFUSED database host");
-    expect(message).toContain("DATABASE_URL");
-    expect(message).not.toContain("password");
+  it("reports schema drift for missing-column query failures", () => {
+    const reason = userSafeFailureReason("Failed query: Unknown column 'knowledgeChunks.embedding' in 'field list'");
+    expect(reason).toContain("schema is out of date");
+    expect(reason).toContain("Apply the pending Drizzle migration");
+    expect(reason).not.toContain("TLS");
   });
 
-  it("categorizes model-provider failures without echoing secrets", () => {
-    const message = userSafeFailureReason("OpenRouter returned 401 for api_key=sk-secret-value");
-    expect(message).toContain("OpenRouter");
-    expect(message).not.toContain("sk-secret-value");
+  it("keeps connection failures separate from schema failures", () => {
+    const reason = userSafeFailureReason("connect ETIMEDOUT gateway.tidbcloud.com:4000");
+    expect(reason).toContain("database could not be reached");
+    expect(reason).toContain("TLS settings");
+  });
+
+  it("does not expose provider credentials in user-facing diagnostics", () => {
+    const reason = userSafeFailureReason("OpenRouter rejected request with api_key=super-secret-value");
+    expect(reason).toContain("model provider");
+    expect(reason).not.toContain("super-secret-value");
   });
 });

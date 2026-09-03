@@ -99,3 +99,7 @@
 
 - [x] Fix Render-to-TiDB database connectivity so Agent Desk runs do not fail after run creation; validate TLS, URL parsing, pooling, and startup diagnostics without exposing credentials.
 - [x] Add regression coverage and deployment documentation for TiDB Cloud connection requirements, then rerun the full suite, type check, and production build.
+
+- [x] Add and document a non-destructive production migration that adds `knowledgeChunks.embedding` without changing existing rows.
+- [x] Classify missing-column/schema query failures separately from connectivity failures and add regression coverage for the user-facing message.
+- [x] Validate the migration SQL, tests, type check, build, and synchronize the production fix.

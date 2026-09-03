@@ -45,6 +45,7 @@ function sanitiseSummary(value: string, max = 1_000) {
 
 export function userSafeFailureReason(value: string): string {
   const message = value.toLowerCase();
+  if (message.includes("unknown column") || message.includes("bad field") || message.includes("doesn't exist") || message.includes("does not exist") || message.includes("failed query") || message.includes("schema")) return "The Northstar database schema is out of date. Apply the pending Drizzle migration, then redeploy and retry the run. Existing knowledge rows are preserved.";
   if (message.includes("database") || message.includes("connect") || message.includes("econnrefused")) return "The Northstar database could not be reached. Check the Render DATABASE_URL, TLS settings, and database availability.";
   if (message.includes("openai") || message.includes("openrouter") || message.includes("api key") || message.includes("401") || message.includes("403")) return "The configured model provider rejected or could not complete the request. Check the OpenRouter endpoint, key, and model settings.";
   if (message.includes("embedding")) return "Semantic retrieval was unavailable. The run should use keyword fallback; review the run trace for the provider detail.";
