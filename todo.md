@@ -96,3 +96,6 @@
 - [ ] Diagnose the opaque failed Agent Desk run from the actual server error path and preserve safe read-only recovery behavior.
 - [ ] Make missing optional `EMBEDDING_MODEL` and `OIDC_LOGOUT_URL` configuration explicit and backward-compatible, with clear runtime diagnostics.
 - [ ] Add regression coverage, rerun tests/type/build checks, document exact Render environment updates, and push the troubleshooting fix.
+
+- [x] Fix Render-to-TiDB database connectivity so Agent Desk runs do not fail after run creation; validate TLS, URL parsing, pooling, and startup diagnostics without exposing credentials.
+- [x] Add regression coverage and deployment documentation for TiDB Cloud connection requirements, then rerun the full suite, type check, and production build.

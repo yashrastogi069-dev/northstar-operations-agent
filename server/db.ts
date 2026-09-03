@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle, type AnyMySql2Connection } from "drizzle-orm/mysql2";
+import { createPool, type Pool, type PoolOptions } from "mysql2/promise";
 import {
   agentApprovals,
   agentArtifacts,
@@ -32,7 +33,33 @@ import type { Embedding } from "./lib/semanticSearch";
 import type { AgentPlan, AgentRiskTier, AgentTaskType, AgentToolName } from "./lib/agentPolicy";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: Pool | null = null;
 let lastDatabaseDiagnostic = "";
+
+export function getDatabasePoolOptions(url: string, overrides: { sslDisabled?: boolean; connectionLimit?: number } = {}): PoolOptions {
+  const parsed = new URL(url);
+  const sslDisabled = overrides.sslDisabled ?? process.env.DATABASE_SSL === "false";
+  const configuredLimit = overrides.connectionLimit ?? (Number(process.env.DATABASE_CONNECTION_LIMIT ?? 5) || 5);
+  const connectionLimit = Math.max(1, Math.min(20, configuredLimit));
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 3306,
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database: decodeURIComponent(parsed.pathname.replace(/^\//, "")),
+    waitForConnections: true,
+    connectionLimit,
+    queueLimit: 0,
+    connectTimeout: 20_000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+    ...(sslDisabled ? {} : { ssl: { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false" } }),
+  };
+}
+
+function buildPool(url: string): Pool {
+  return createPool(getDatabasePoolOptions(url));
+}
 
 function databaseTarget(value: string): string {
   try {
@@ -56,11 +83,18 @@ export async function getDb() {
   const url = process.env.DATABASE_URL;
   if (!_db && url) {
     try {
-      _db = drizzle(url);
-      await _db.execute(sql`select 1`);
+      _pool = buildPool(url);
+      _db = drizzle(_pool as unknown as AnyMySql2Connection);
+      const database = _db;
+      if (!database) throw new Error("Database initialization returned no client");
+      await database.execute(sql`select 1`);
       lastDatabaseDiagnostic = "";
     } catch (error) {
       _db = null;
+      if (_pool) {
+        void _pool.end().catch(() => undefined);
+        _pool = null;
+      }
       logDatabaseDiagnostic(`Unable to connect to ${databaseTarget(url)}. Verify DATABASE_URL, TiDB network access, TLS settings, and that the database exists.`, error);
     }
   } else if (!_db && !url) {
